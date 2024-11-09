@@ -8,286 +8,185 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QFont
 import pandas as pd
 
+# STYLESHEETS
+main_layout_stylesheet = """
+    QWidget {
+        background-color: rgb(225, 235, 240);
+    }
+    QPushButton {
+        background-color: rgb(165, 209, 255);
+        border: 2px solid rgb(128, 179, 255);
+        border-radius: 5px;
+        padding: 2px 5px;
+    }
+    QPushButton::hover {
+        background-color: rgb(128, 179, 255);
+    }
+    QScrollArea {
+        border: 2px solid rgb(128, 179, 255);
+        border-radius: 5px;
+        background-color: rgb(230, 235, 240);
+    }
+"""
+widget_stylesheet = """
+    border: 0px;
+    border-radius: 5px;
+    background-color: rgb(225, 235, 240);
+"""
+scroll_bar_stylesheet = """
+    QScrollBar:vertical {              
+        border-color: rgb(225, 235, 240);
+        border-width: 1px;
+        border-style: solid;
+        border-radius: 10px;
+        background: rgb(225, 235, 240);
+        width:18px;
+        margin: 10px 6px 10px 0;
+    }
+    QScrollBar::handle:vertical {
+        background-color: rgb(128, 179, 255);
+        min-height: 25px;
+        border: 1px solid rgb(128, 179, 255);
+        border-radius: 5px;
+    }
+    QScrollBar::add-line:vertical {
+        border: 1px solid rgb(239, 229, 220);
+        background-color: rgb(239, 229, 220);
+        height: 0px;
+        subcontrol-position: bottom;
+        subcontrol-origin: margin;
+    }
+    QScrollBar::sub-line:vertical {
+        border: 1px solid rgb(239, 229, 220);
+        background-color: rgb(241, 241, 241);
+        height: 0px;
+        subcontrol-position: top;
+        subcontrol-origin: margin;
+    }
+    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+        background: none;
+    }
+"""
 
 class UI(QWidget):
     def __init__(self):
+        # main layout settings
         super(UI, self).__init__()
         self.setWindowIcon(QIcon("icons/moving-truck.png"))
         self.setWindowTitle("Flint Hills Moving - Pricing Calculator")
         self.main_layout = QGridLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.main_layout)
-        self.setStyleSheet("QWidget {"
-                           "background-color: rgb(225, 235, 240);}"
-                           "QPushButton {"
-                           "background-color: rgb(165, 209, 255);"
-                           "border: 2px solid rgb(128, 179, 255);"
-                           "border-radius: 5px;"
-                           "padding: 2px 5px;}"
-                           "QPushButton::hover {"
-                           "background-color: rgb(128, 179, 255)}"
-                           "QScrollArea {border: 2px solid rgb(128, 179, 255);"
-                           "border-radius: 5px;"
-                           "background-color: rgb(230, 235, 240);}")
+        self.setStyleSheet(main_layout_stylesheet)
 
-        # we define some fixed values below
+        # fixed values
         self.integer_only = QIntValidator()
 
-        # we define UI elements below
+        # UI elements
         self.kitchen_tab = QPushButton()
         self.kitchen_tab.clicked.connect(self.get_kitchen_tab)
         self.kitchen_tab.setText("Kitchen")
+
         self.bedroom_tab = QPushButton()
         self.bedroom_tab.clicked.connect(self.get_bedroom_tab)
         self.bedroom_tab.setText("Bedroom")
+
         self.living_tab = QPushButton()
         self.living_tab.clicked.connect(self.get_living_tab)
         self.living_tab.setText("Living Room")
+
         self.outside_tab = QPushButton()
         self.outside_tab.clicked.connect(self.get_outside_tab)
         self.outside_tab.setText("Outside")
+
         self.office_tab = QPushButton()
         self.office_tab.clicked.connect(self.get_office_tab)
         self.office_tab.setText("Office")
+
         self.boxes_tab = QPushButton()
         self.boxes_tab.clicked.connect(self.get_boxes_tab)
         self.boxes_tab.setText("Boxes")
-        #####
+
+        self.packing_tab = QPushButton()
+        self.packing_tab.clicked.connect(self.get_packing_tab)
+        self.packing_tab.setText("Packing")
+
+        # UI scroll area and scroll bars
         self.kitchen_scroll_area = QScrollArea()
-        self.kitchen_scroll_area.setWidgetResizable(True)
-        self.kitchen_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        kitchen_scrollbar = self.kitchen_scroll_area.children()[2]
-        kitchen_scrollbar.setStyleSheet("""QScrollBar:vertical {
-                                           border-color: rgb(225, 235, 240);
-                                           border-width: 1px;
-                                           border-style: solid;
-                                           border-radius: 10px;
-                                           background: rgb(225, 235, 240);
-                                           width:18px;
-                                           margin: 10px 6px 10px 0;}
-                                           QScrollBar::handle:vertical {
-                                           background-color: rgb(128, 179, 255);
-                                           min-height: 25px;
-                                           border: 1px solid rgb(128, 179, 255);
-                                           border-radius: 5px;}
-                                           QScrollBar::add-line:vertical {
-                                           border: 1px solid rgb(239, 229, 220);
-                                           background-color: rgb(239, 229, 220);
-                                           height: 0px;
-                                           subcontrol-position: bottom;
-                                           subcontrol-origin: margin;}
-                                           QScrollBar::sub-line:vertical {
-                                           border: 1px solid rgb(239, 229, 220);
-                                           background-color: rgb(241, 241, 241);
-                                           height: 0px;
-                                           subcontrol-position: top;
-                                           subcontrol-origin: margin;}
-                                           QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                                           background: none;}""")
         self.kitchen_widget = QWidget()
-        self.kitchen_widget.setStyleSheet(
-                           "border: 0px;"
-                           "border-radius: 5px;"
-                           "background-color: rgb(225, 235, 240);")
         self.kitchen_widget_layout = QFormLayout()
-        self.kitchen_widget.setLayout(self.kitchen_widget_layout)
-        self.kitchen_scroll_area.setWidget(self.kitchen_widget)
+        self.set_scroll_area_settings(self.kitchen_scroll_area, self.kitchen_widget, self.kitchen_widget_layout)
+
         self.bedroom_scroll_area = QScrollArea()
-        self.bedroom_scroll_area.setWidgetResizable(True)
-        self.bedroom_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        bedroom_scrollbar = self.bedroom_scroll_area.children()[2]
-        bedroom_scrollbar.setStyleSheet("""QScrollBar:vertical {              
-                                           border-color: rgb(225, 235, 240);
-                                           border-width: 1px;
-                                           border-style: solid;
-                                           border-radius: 10px;
-                                           background: rgb(225, 235, 240);
-                                           width:18px;
-                                           margin: 10px 6px 10px 0;}
-                                           QScrollBar::handle:vertical {
-                                           background-color: rgb(128, 179, 255);
-                                           min-height: 25px;
-                                           border: 1px solid rgb(128, 179, 255);
-                                           border-radius: 5px;}
-                                           QScrollBar::add-line:vertical {
-                                           border: 1px solid rgb(239, 229, 220);
-                                           background-color: rgb(239, 229, 220);
-                                           height: 0px;
-                                           subcontrol-position: bottom;
-                                           subcontrol-origin: margin;}
-                                           QScrollBar::sub-line:vertical {
-                                           border: 1px solid rgb(239, 229, 220);
-                                           background-color: rgb(241, 241, 241);
-                                           height: 0px;
-                                           subcontrol-position: top;
-                                           subcontrol-origin: margin;}
-                                           QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                                           background: none;}""")
         self.bedroom_widget = QWidget()
-        self.bedroom_widget.setStyleSheet(
-                           "border: 0px;"
-                           "border-radius: 5px;"
-                           "background-color: rgb(225, 235, 240);")
         self.bedroom_widget_layout = QFormLayout()
-        self.bedroom_widget.setLayout(self.bedroom_widget_layout)
-        self.bedroom_scroll_area.setWidget(self.bedroom_widget)
+        self.set_scroll_area_settings(self.bedroom_scroll_area, self.bedroom_widget, self.bedroom_widget_layout)
+
         self.living_scroll_area = QScrollArea()
-        self.living_scroll_area.setWidgetResizable(True)
-        self.living_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        living_scrollbar = self.living_scroll_area.children()[2]
-        living_scrollbar.setStyleSheet("""QScrollBar:vertical {              
-                                       border-color: rgb(225, 235, 240);
-                                       border-width: 1px;
-                                       border-style: solid;
-                                       border-radius: 10px;
-                                       background: rgb(225, 235, 240);
-                                       width:18px;
-                                       margin: 10px 6px 10px 0;}
-                                       QScrollBar::handle:vertical {
-                                       background-color: rgb(128, 179, 255);
-                                       min-height: 25px;
-                                       border: 1px solid rgb(128, 179, 255);
-                                       border-radius: 5px;}
-                                       QScrollBar::add-line:vertical {
-                                       border: 1px solid rgb(239, 229, 220);
-                                       background-color: rgb(239, 229, 220);
-                                       height: 0px;
-                                       subcontrol-position: bottom;
-                                       subcontrol-origin: margin;}
-                                       QScrollBar::sub-line:vertical {
-                                       border: 1px solid rgb(239, 229, 220);
-                                       background-color: rgb(241, 241, 241);
-                                       height: 0px;
-                                       subcontrol-position: top;
-                                       subcontrol-origin: margin;}
-                                       QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                                       background: none;}""")
         self.living_widget = QWidget()
-        self.living_widget.setStyleSheet(
-                           "border: 0px;"
-                           "border-radius: 5px;"
-                           "background-color: rgb(225, 235, 240);")
         self.living_widget_layout = QFormLayout()
-        self.living_widget.setLayout(self.living_widget_layout)
-        self.living_scroll_area.setWidget(self.living_widget)
+        self.set_scroll_area_settings(self.living_scroll_area, self.living_widget, self.living_widget_layout)
+
         self.outside_scroll_area = QScrollArea()
-        self.outside_scroll_area.setWidgetResizable(True)
-        self.outside_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        outside_scrollbar = self.outside_scroll_area.children()[2]
-        outside_scrollbar.setStyleSheet("""QScrollBar:vertical {              
-                                           border-color: rgb(225, 235, 240);
-                                           border-width: 1px;
-                                           border-style: solid;
-                                           border-radius: 10px;
-                                           background: rgb(225, 235, 240);
-                                           width:18px;
-                                           margin: 10px 6px 10px 0;}
-                                           QScrollBar::handle:vertical {
-                                           background-color: rgb(128, 179, 255);
-                                           min-height: 25px;
-                                           border: 1px solid rgb(128, 179, 255);
-                                           border-radius: 5px;}
-                                           QScrollBar::add-line:vertical {
-                                           border: 1px solid rgb(239, 229, 220);
-                                           background-color: rgb(239, 229, 220);
-                                           height: 0px;
-                                           subcontrol-position: bottom;
-                                           subcontrol-origin: margin;}
-                                           QScrollBar::sub-line:vertical {
-                                           border: 1px solid rgb(239, 229, 220);
-                                           background-color: rgb(241, 241, 241);
-                                           height: 0px;
-                                           subcontrol-position: top;
-                                           subcontrol-origin: margin;}
-                                           QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                                           background: none;}""")
         self.outside_widget = QWidget()
-        self.outside_widget.setStyleSheet(
-                           "border: 0px;"
-                           "border-radius: 5px;"
-                           "background-color: rgb(225, 235, 240);")
         self.outside_widget_layout = QFormLayout()
-        self.outside_widget.setLayout(self.outside_widget_layout)
-        self.outside_scroll_area.setWidget(self.outside_widget)
+        self.set_scroll_area_settings(self.outside_scroll_area, self.outside_widget, self.outside_widget_layout)
+
         self.office_scroll_area = QScrollArea()
-        self.office_scroll_area.setWidgetResizable(True)
-        self.office_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        office_scrollbar = self.office_scroll_area.children()[2]
-        office_scrollbar.setStyleSheet("""QScrollBar:vertical {              
-                                       border-color: rgb(225, 235, 240);
-                                       border-width: 1px;
-                                       border-style: solid;
-                                       border-radius: 10px;
-                                       background: rgb(225, 235, 240);
-                                       width:18px;
-                                       margin: 10px 6px 10px 0;}
-                                       QScrollBar::handle:vertical {
-                                       background-color: rgb(128, 179, 255);
-                                       min-height: 25px;
-                                       border: 1px solid rgb(128, 179, 255);
-                                       border-radius: 5px;}
-                                       QScrollBar::add-line:vertical {
-                                       border: 1px solid rgb(239, 229, 220);
-                                       background-color: rgb(239, 229, 220);
-                                       height: 0px;
-                                       subcontrol-position: bottom;
-                                       subcontrol-origin: margin;}
-                                       QScrollBar::sub-line:vertical {
-                                       border: 1px solid rgb(239, 229, 220);
-                                       background-color: rgb(241, 241, 241);
-                                       height: 0px;
-                                       subcontrol-position: top;
-                                       subcontrol-origin: margin;}
-                                       QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                                       background: none;}""")
         self.office_widget = QWidget()
-        self.office_widget.setStyleSheet(
-                           "border: 0px;"
-                           "border-radius: 5px;"
-                           "background-color: rgb(225, 235, 240);")
         self.office_widget_layout = QFormLayout()
-        self.office_widget.setLayout(self.office_widget_layout)
-        self.office_scroll_area.setWidget(self.office_widget)
+        self.set_scroll_area_settings(self.office_scroll_area, self.office_widget, self.office_widget_layout)
+
         self.boxes_scroll_area = QScrollArea()
-        self.boxes_scroll_area.setWidgetResizable(True)
-        self.boxes_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        boxes_scrollbar = self.boxes_scroll_area.children()[2]
-        boxes_scrollbar.setStyleSheet("""QScrollBar:vertical {              
-                                       border-color: rgb(225, 235, 240);
-                                       border-width: 1px;
-                                       border-style: solid;
-                                       border-radius: 10px;
-                                       background: rgb(225, 235, 240);
-                                       width:18px;
-                                       margin: 10px 6px 10px 0;}
-                                       QScrollBar::handle:vertical {
-                                       background-color: rgb(128, 179, 255);
-                                       min-height: 25px;
-                                       border: 1px solid rgb(128, 179, 255);
-                                       border-radius: 5px;}
-                                       QScrollBar::add-line:vertical {
-                                       border: 1px solid rgb(239, 229, 220);
-                                       background-color: rgb(239, 229, 220);
-                                       height: 0px;
-                                       subcontrol-position: bottom;
-                                       subcontrol-origin: margin;}
-                                       QScrollBar::sub-line:vertical {
-                                       border: 1px solid rgb(239, 229, 220);
-                                       background-color: rgb(241, 241, 241);
-                                       height: 0px;
-                                       subcontrol-position: top;
-                                       subcontrol-origin: margin;}
-                                       QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                                       background: none;}""")
         self.boxes_widget = QWidget()
-        self.boxes_widget.setStyleSheet(
-                           "border: 0px;"
-                           "border-radius: 5px;"
-                           "background-color: rgb(225, 235, 240);")
         self.boxes_widget_layout = QFormLayout()
-        self.boxes_widget.setLayout(self.boxes_widget_layout)
-        self.boxes_scroll_area.setWidget(self.boxes_widget)
-        #####
+        self.set_scroll_area_settings(self.boxes_scroll_area, self.boxes_widget, self.boxes_widget_layout)
+
+        self.packing_scroll_area = QScrollArea()
+        self.packing_widget = QWidget()
+        self.packing_widget_layout = QFormLayout()
+        self.set_scroll_area_settings(self.packing_scroll_area, self.packing_widget, self.packing_widget_layout, True)
+
+        # all tabs as dictionary
+        self.ALL_TABS = {
+            "kitchen": {
+                "tab": self.kitchen_tab,
+                "scroll_area": self.kitchen_scroll_area,
+                "widget": self.kitchen_widget
+            },
+            "bedroom": {
+                "tab": self.bedroom_tab,
+                "scroll_area": self.bedroom_scroll_area,
+                "widget": self.bedroom_widget
+            },
+            "living": {
+                "tab": self.living_tab,
+                "scroll_area": self.living_scroll_area,
+                "widget": self.living_widget
+            },
+            "outside": {
+                "tab": self.outside_tab,
+                "scroll_area": self.outside_scroll_area,
+                "widget": self.outside_widget
+            },
+            "office": {
+                "tab": self.office_tab,
+                "scroll_area": self.office_scroll_area,
+                "widget": self.office_widget
+            },
+            "boxes": {
+                "tab": self.boxes_tab,
+                "scroll_area": self.boxes_scroll_area,
+                "widget": self.boxes_widget
+            },
+            "packing": {
+                "tab": self.packing_tab,
+                "scroll_area": self.packing_scroll_area,
+                "widget": self.packing_widget
+            }
+        }
+
+        # Buttons and other settings
         self.clear_selections_button = QPushButton()
         self.clear_selections_button.clicked.connect(self.clear_selections)
         self.clear_selections_button.setText("Clear")
@@ -303,6 +202,7 @@ class UI(QWidget):
         self.import_button = QPushButton()
         self.import_button.setText("Import")
         self.import_button.clicked.connect(self.import_list)
+
         #####
         self.round_trip_distance_label = QLabel()
         self.round_trip_distance_label.setText("Round Trip Distance:")
@@ -430,12 +330,14 @@ class UI(QWidget):
         self.main_layout.addWidget(self.outside_tab, 1, 4, 1, 1)
         self.main_layout.addWidget(self.office_tab, 1, 5, 1, 1)
         self.main_layout.addWidget(self.boxes_tab, 1, 6, 1, 1)
+        self.main_layout.addWidget(self.packing_tab, 1, 7, 1, 1)
         self.main_layout.addWidget(self.kitchen_scroll_area, 2, 1, 20, 6)
         self.main_layout.addWidget(self.bedroom_scroll_area, 2, 1, 20, 6)
         self.main_layout.addWidget(self.living_scroll_area, 2, 1, 20, 6)
         self.main_layout.addWidget(self.outside_scroll_area, 2, 1, 20, 6)
         self.main_layout.addWidget(self.office_scroll_area, 2, 1, 20, 6)
         self.main_layout.addWidget(self.boxes_scroll_area, 2, 1, 20, 6)
+        self.main_layout.addWidget(self.packing_scroll_area, 2, 1, 20, 6)
         self.main_layout.addWidget(self.clear_selections_button, 22, 6, 1, 1, alignment=Qt.AlignRight)
         self.main_layout.addWidget(self.edit_items_button, 22, 1, 1, 1)
         self.main_layout.addWidget(self.edit_formulas_button, 22, 2, 1, 1)
@@ -526,6 +428,7 @@ class UI(QWidget):
         for label in self.outside_scroll_area.findChildren(QLabel):
             label.adjustSize()
             label_width.append(label.width())
+
         row_height = self.outside_scroll_area.findChild(QFrame).height() * 10
         min_scroll_width = max(label_width) + row_button_width + row_button_width + row_line_edit_width + 20
         self.kitchen_scroll_area.setMinimumSize(min_scroll_width, row_height)
@@ -534,94 +437,51 @@ class UI(QWidget):
         self.boxes_scroll_area.setMinimumSize(min_scroll_width, row_height)
         self.office_scroll_area.setMinimumSize(min_scroll_width, row_height)
         self.outside_scroll_area.setMinimumSize(min_scroll_width, row_height)
+        self.packing_scroll_area.setMinimumSize(min_scroll_width, row_height)
 
-        # set initial size
+        # set initial size of the main window
         width = self.width()
         self.resize(800, width)
 
+    ### METHODS ###
+    def set_scroll_area_settings(self, scroll_area, widget, widget_layout, is_packing = False):
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        scrollbar = scroll_area.children()[2]
+        scrollbar.setStyleSheet(scroll_bar_stylesheet)
+        widget.setStyleSheet(widget_stylesheet)
+        widget.setLayout(widget_layout)
+        scroll_area.setWidget(widget)
+
+    def show_one_tab_and_hide_others(self, new_tab):
+        for tab_name, tab_info in self.ALL_TABS.items():
+            if tab_name == new_tab:
+                tab_info["scroll_area"].show()
+                tab_info["tab"].setStyleSheet("color: rgb(179, 89, 0);")
+            else:
+                tab_info["scroll_area"].hide()
+                tab_info["tab"].setStyleSheet("color: black;")
+
     def get_kitchen_tab(self):
-        self.kitchen_scroll_area.show()
-        self.bedroom_scroll_area.hide()
-        self.living_scroll_area.hide()
-        self.boxes_scroll_area.hide()
-        self.office_scroll_area.hide()
-        self.outside_scroll_area.hide()
-        self.kitchen_tab.setStyleSheet("color: rgb(179, 89, 0);")
-        self.bedroom_tab.setStyleSheet("color: black;")
-        self.boxes_tab.setStyleSheet("color: black;")
-        self.office_tab.setStyleSheet("color: black;")
-        self.living_tab.setStyleSheet("color: black;")
-        self.outside_tab.setStyleSheet("color: black;")
+        self.show_one_tab_and_hide_others("kitchen")
 
     def get_bedroom_tab(self):
-        self.kitchen_scroll_area.hide()
-        self.bedroom_scroll_area.show()
-        self.living_scroll_area.hide()
-        self.boxes_scroll_area.hide()
-        self.office_scroll_area.hide()
-        self.outside_scroll_area.hide()
-        self.kitchen_tab.setStyleSheet("color: black;")
-        self.bedroom_tab.setStyleSheet("color: rgb(179, 89, 0);")
-        self.boxes_tab.setStyleSheet("color: black;")
-        self.office_tab.setStyleSheet("color: black;")
-        self.living_tab.setStyleSheet("color: black;")
-        self.outside_tab.setStyleSheet("color: black;")
+        self.show_one_tab_and_hide_others("bedroom")
 
     def get_living_tab(self):
-        self.kitchen_scroll_area.hide()
-        self.bedroom_scroll_area.hide()
-        self.living_scroll_area.show()
-        self.boxes_scroll_area.hide()
-        self.office_scroll_area.hide()
-        self.outside_scroll_area.hide()
-        self.kitchen_tab.setStyleSheet("color: black;")
-        self.bedroom_tab.setStyleSheet("color: black;")
-        self.boxes_tab.setStyleSheet("color: black;")
-        self.office_tab.setStyleSheet("color: black;")
-        self.living_tab.setStyleSheet("color: rgb(179, 89, 0);")
-        self.outside_tab.setStyleSheet("color: black;")
+        self.show_one_tab_and_hide_others("living")
 
     def get_outside_tab(self):
-        self.kitchen_scroll_area.hide()
-        self.bedroom_scroll_area.hide()
-        self.living_scroll_area.hide()
-        self.boxes_scroll_area.hide()
-        self.office_scroll_area.hide()
-        self.outside_scroll_area.show()
-        self.kitchen_tab.setStyleSheet("color: black;")
-        self.bedroom_tab.setStyleSheet("color: black;")
-        self.boxes_tab.setStyleSheet("color: black;")
-        self.office_tab.setStyleSheet("color: black;")
-        self.living_tab.setStyleSheet("color: black;")
-        self.outside_tab.setStyleSheet("color: rgb(179, 89, 0);")
+        self.show_one_tab_and_hide_others("outside")
 
     def get_office_tab(self):
-        self.kitchen_scroll_area.hide()
-        self.bedroom_scroll_area.hide()
-        self.living_scroll_area.hide()
-        self.boxes_scroll_area.hide()
-        self.office_scroll_area.show()
-        self.outside_scroll_area.hide()
-        self.kitchen_tab.setStyleSheet("color: black;")
-        self.bedroom_tab.setStyleSheet("color: black;")
-        self.boxes_tab.setStyleSheet("color: black;")
-        self.office_tab.setStyleSheet("color: rgb(179, 89, 0);")
-        self.living_tab.setStyleSheet("color: black;")
-        self.outside_tab.setStyleSheet("color: black;")
+        self.show_one_tab_and_hide_others("office")
 
     def get_boxes_tab(self):
-        self.kitchen_scroll_area.hide()
-        self.bedroom_scroll_area.hide()
-        self.living_scroll_area.hide()
-        self.boxes_scroll_area.show()
-        self.office_scroll_area.hide()
-        self.outside_scroll_area.hide()
-        self.kitchen_tab.setStyleSheet("color: black;")
-        self.bedroom_tab.setStyleSheet("color: black;")
-        self.boxes_tab.setStyleSheet("color: rgb(179, 89, 0);")
-        self.office_tab.setStyleSheet("color: black;")
-        self.living_tab.setStyleSheet("color: black;")
-        self.outside_tab.setStyleSheet("color: black;")
+        self.show_one_tab_and_hide_others("boxes")
+
+    def get_packing_tab(self):
+        self.show_one_tab_and_hide_others("packing")
 
     def change_slider_label(self):
         current_value = self.slider.value()
@@ -730,11 +590,11 @@ class UI(QWidget):
                 item_tab.addItem("Office")
                 item_tab.addItem("Boxes")
             else:
-                for item in self.all_items:
-                    if item[0] == name:
-                        item_name.setText(str(item[0]))
-                        item_value.setText(str(item[1]))
-                        item_tab.setCurrentText(item[2])
+                for edited_item in self.all_items:
+                    if edited_item[0] == name:
+                        item_name.setText(str(edited_item[0]))
+                        item_value.setText(str(edited_item[1]))
+                        item_tab.setCurrentText(edited_item[2])
 
         self.edit_items_window = QDialog(None, Qt.WindowCloseButtonHint | Qt.WindowTitleHint)
         self.edit_items_window.setWindowIcon(QIcon("icons/edit.png"))
