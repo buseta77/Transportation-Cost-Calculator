@@ -1,12 +1,17 @@
 import sys
 import csv
+import psycopg2
+import pandas
+
+# import PyQt5 and related classes
 from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QLineEdit, QSlider, QGridLayout, QScrollArea, QComboBox,\
-    QWidget, QFrame, QHBoxLayout, QVBoxLayout, QFormLayout, QDialog, QFileDialog, QPlainTextEdit
-from PyQt5.QtGui import QIntValidator
-import sqlite3
+    QWidget, QFrame, QHBoxLayout, QVBoxLayout, QFormLayout, QDialog, QFileDialog, QPlainTextEdit, QTableWidget, QTableWidgetItem
+from PyQt5.QtGui import QIntValidator, QDoubleValidator
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QFont
-import pandas as pd
+
+DB_URL = "URL_OF_DB"
+ADMIN_PW = "PW"
 
 # STYLESHEETS
 main_layout_stylesheet = """
@@ -67,6 +72,48 @@ scroll_bar_stylesheet = """
         background: none;
     }
 """
+rile_adjustment_stylesheet = """
+    QComboBox {
+        border: 1px solid rgb(128, 179, 255);
+        border-radius: 3px;
+        background-color: rgb(250, 250, 250);
+    }
+    QComboBox::drop-down {
+        background-color: rgb(250, 250, 250);
+        border-radius: 3px;
+    }
+    QComboBox::down-arrow {
+        image: url(icons/arrow.png);
+        width: 8px;
+        height: 8px;
+    }
+    QComboBox QAbstractItemView {
+        background-color: rgb(250, 250, 250);
+    }
+"""
+calculate_button_stylesheet = """
+    QPushButton {
+        background-color: rgb(255, 179, 102);
+        border: 2px solid rgb(255, 128, 0);
+        border-radius: 5px;
+        padding: 5px 5px;
+    }
+    QPushButton::hover {
+        background-color: rgb(255, 128, 0);
+    }
+"""
+
+# custom validator for only numeric input
+qDoubleValidator = QDoubleValidator()
+qDoubleValidator.setBottom(0)
+
+def is_float_not_integer(num):
+    return num != int(num)
+def convert_integer_or_leave_float(num):
+    if is_float_not_integer(num):
+        return num
+    else:
+        return int(num)
 
 class UI(QWidget):
     def __init__(self):
@@ -74,78 +121,163 @@ class UI(QWidget):
         super(UI, self).__init__()
         self.setWindowIcon(QIcon("icons/moving-truck.png"))
         self.setWindowTitle("Flint Hills Moving - Pricing Calculator")
+
+        self.moving_layout = QGridLayout()
+        self.moving_layout.setContentsMargins(0, 0, 0, 0)
+        self.packing_layout = QGridLayout()
+        self.packing_layout.setContentsMargins(0, 0, 0, 0)
+
         self.main_layout = QGridLayout()
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setContentsMargins(0, 10, 0, 0)
         self.setLayout(self.main_layout)
         self.setStyleSheet(main_layout_stylesheet)
+        self.main_layout.addLayout(self.moving_layout, 1, 0, 24, 10)
+        self.main_layout.addLayout(self.packing_layout, 1, 0, 24, 10)
 
         # fixed values
         self.integer_only = QIntValidator()
 
-        # UI elements
+        # Main layout UI elements
+        self.moving_tab = QPushButton()
+        self.moving_tab.clicked.connect(lambda: self.show_and_hide_layout(self.moving_layout, self.packing_layout, True))
+        self.moving_tab.setText("MOVING")
+        self.packing_tab = QPushButton()
+        self.packing_tab.clicked.connect(lambda: self.show_and_hide_layout(self.packing_layout, self.moving_layout))
+        self.packing_tab.setText("PACKING")
+
+        # Moving UI elements
         self.kitchen_tab = QPushButton()
         self.kitchen_tab.clicked.connect(self.get_kitchen_tab)
         self.kitchen_tab.setText("Kitchen")
-
         self.bedroom_tab = QPushButton()
         self.bedroom_tab.clicked.connect(self.get_bedroom_tab)
         self.bedroom_tab.setText("Bedroom")
-
         self.living_tab = QPushButton()
         self.living_tab.clicked.connect(self.get_living_tab)
         self.living_tab.setText("Living Room")
-
         self.outside_tab = QPushButton()
         self.outside_tab.clicked.connect(self.get_outside_tab)
         self.outside_tab.setText("Outside")
-
         self.office_tab = QPushButton()
         self.office_tab.clicked.connect(self.get_office_tab)
         self.office_tab.setText("Office")
-
         self.boxes_tab = QPushButton()
         self.boxes_tab.clicked.connect(self.get_boxes_tab)
         self.boxes_tab.setText("Boxes")
 
-        self.packing_tab = QPushButton()
-        self.packing_tab.clicked.connect(self.get_packing_tab)
-        self.packing_tab.setText("Packing")
+        # Packing UI elements
+        self.table_widget = QTableWidget()
+        self.table_widget.setRowCount(5)
+        self.table_widget.setColumnCount(5)
+        self.table_widget.setHorizontalHeaderLabels(['', 'Quantity', 'Supply Cost', 'Resell Price', 'Profit'])
+        self.table_widget.setItem(0, 0, QTableWidgetItem("  Small Boxes"))
+        self.table_widget.setItem(1, 0, QTableWidgetItem("  Medium Boxes"))
+        self.table_widget.setItem(2, 0, QTableWidgetItem("  Large Boxes"))
+        self.table_widget.setItem(3, 0, QTableWidgetItem("  Paper Rolls"))
+        self.table_widget.setItem(4, 0, QTableWidgetItem("  Tape Rolls"))
+        self.table_widget.setColumnWidth(0, 127)
+        self.table_widget.setColumnWidth(1, 90)
+        self.table_widget.setColumnWidth(2, 90)
+        self.table_widget.setColumnWidth(3, 90)
+        self.table_widget.setColumnWidth(4, 90)
+        self.table_widget.setRowHeight(0, 50)
+        self.table_widget.setRowHeight(1, 50)
+        self.table_widget.setRowHeight(2, 50)
+        self.table_widget.setRowHeight(3, 50)
+        self.table_widget.setRowHeight(4, 50)
+        # table settings
+        self.table_widget.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.table_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.table_widget.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table_widget.verticalHeader().setVisible(False)
+        self.table_widget.setSelectionBehavior(QTableWidget.SelectItems)
+        self.table_widget.setSelectionMode(QTableWidget.NoSelection)
+        self.table_widget.setMinimumWidth(500)
+        self.table_widget.setMinimumHeight(277)
+        self.table_widget.setStyleSheet("""
+            QTableWidget {
+                border: 2px solid rgb(128, 179, 255);
+                border-radius: 5px;
+                margin-right: 10px;
+            }
+            QLabel {
+                border:none;
+            }"""
+        )
+
+        self.clear_packing_selections_button = QPushButton()
+        self.clear_packing_selections_button.clicked.connect(self.clear_packing_selections)
+        self.clear_packing_selections_button.setText("Clear")
+        self.calculate_packing_cost_button = QPushButton()
+        self.calculate_packing_cost_button.clicked.connect(self.calculate_packing_cost)
+        self.calculate_packing_cost_button.setText("Calculate")
+        self.calculate_packing_cost_button.setStyleSheet(calculate_button_stylesheet)
+        ###
+        self.packs_costs_frame = QFrame()
+        self.packs_costs_layout = QFormLayout()
+        self.packs_costs_frame.setLayout(self.packs_costs_layout)
+        self.packs_costs_frame.setFixedWidth(500)
+        self.packs_costs_frame.setStyleSheet("""
+            QFrame {
+                border: 2px solid rgb(128, 179, 255);
+                border-radius: 5px;
+                margin-right: 10px;
+            }
+            QLabel {
+                border:none;
+            }"""
+        )
+        self.packs_labor_hours = QLabel()
+        self.packs_labor_hours.setText(f"Labour Hours : 0 ($0)")
+        self.packs_supply_cost = QLabel()
+        self.packs_supply_cost.setText("Total Supply Cost: $0")
+        self.packs_supply_resale_price = QLabel()
+        self.packs_supply_resale_price.setText("Total Supply Resell Price: $0")
+        self.packs_supply_profit = QLabel()
+        self.packs_supply_profit.setText("Total Supply Materials Profit: $0")
+        self.packs_total_packing_cost = QLabel()
+        self.packs_total_packing_cost.setText("Total Packing Cost : $0")
+        self.packs_costs_layout.addWidget(self.packs_labor_hours)
+        self.packs_costs_layout.addWidget(self.packs_supply_cost)
+        self.packs_costs_layout.addWidget(self.packs_supply_resale_price)
+        self.packs_costs_layout.addWidget(self.packs_supply_profit)
+        self.packs_costs_layout.addWidget(self.packs_total_packing_cost)
+        self.edit_supplies_button = QPushButton()
+        self.edit_supplies_button.clicked.connect(self.edit_supply_costs)
+        self.edit_supplies_button.setText("Edit Supply Materials")
+        self.edit_room_materials_button = QPushButton()
+        self.edit_room_materials_button.clicked.connect(self.edit_room_materials)
+        self.edit_room_materials_button.setText("Edit Room Needs")
 
         # UI scroll area and scroll bars
         self.kitchen_scroll_area = QScrollArea()
         self.kitchen_widget = QWidget()
         self.kitchen_widget_layout = QFormLayout()
         self.set_scroll_area_settings(self.kitchen_scroll_area, self.kitchen_widget, self.kitchen_widget_layout)
-
         self.bedroom_scroll_area = QScrollArea()
         self.bedroom_widget = QWidget()
         self.bedroom_widget_layout = QFormLayout()
         self.set_scroll_area_settings(self.bedroom_scroll_area, self.bedroom_widget, self.bedroom_widget_layout)
-
         self.living_scroll_area = QScrollArea()
         self.living_widget = QWidget()
         self.living_widget_layout = QFormLayout()
         self.set_scroll_area_settings(self.living_scroll_area, self.living_widget, self.living_widget_layout)
-
         self.outside_scroll_area = QScrollArea()
         self.outside_widget = QWidget()
         self.outside_widget_layout = QFormLayout()
         self.set_scroll_area_settings(self.outside_scroll_area, self.outside_widget, self.outside_widget_layout)
-
         self.office_scroll_area = QScrollArea()
         self.office_widget = QWidget()
         self.office_widget_layout = QFormLayout()
         self.set_scroll_area_settings(self.office_scroll_area, self.office_widget, self.office_widget_layout)
-
         self.boxes_scroll_area = QScrollArea()
         self.boxes_widget = QWidget()
         self.boxes_widget_layout = QFormLayout()
         self.set_scroll_area_settings(self.boxes_scroll_area, self.boxes_widget, self.boxes_widget_layout)
-
         self.packing_scroll_area = QScrollArea()
         self.packing_widget = QWidget()
         self.packing_widget_layout = QFormLayout()
-        self.set_scroll_area_settings(self.packing_scroll_area, self.packing_widget, self.packing_widget_layout, True)
+        self.set_scroll_area_settings(self.packing_scroll_area, self.packing_widget, self.packing_widget_layout)
 
         # all tabs as dictionary
         self.ALL_TABS = {
@@ -179,11 +311,6 @@ class UI(QWidget):
                 "scroll_area": self.boxes_scroll_area,
                 "widget": self.boxes_widget
             },
-            "packing": {
-                "tab": self.packing_tab,
-                "scroll_area": self.packing_scroll_area,
-                "widget": self.packing_widget
-            }
         }
 
         # Buttons and other settings
@@ -225,18 +352,7 @@ class UI(QWidget):
         self.ft_riley_adjustment_label = QLabel()
         self.ft_riley_adjustment_label.setText("Fort Riley Adjustment:")
         self.ft_riley_adjustment = QComboBox()
-        self.ft_riley_adjustment.setStyleSheet("QComboBox {border: 1px solid rgb(128, 179, 255);"
-                                               "border-radius: 3px;"
-                                               "background-color: rgb(250, 250, 250);}"
-                                               "QComboBox::drop-down {"
-                                               "background-color: rgb(250, 250, 250);"
-                                               "border-radius: 3px;}"
-                                               "QComboBox::down-arrow {"
-                                               "image: url(icons/arrow.png);"
-                                               "width: 8px;"
-                                               "height: 8px;}"
-                                               "QComboBox QAbstractItemView {"
-                                               "background-color: rgb(250, 250, 250);}")
+        self.ft_riley_adjustment.setStyleSheet(rile_adjustment_stylesheet)
         self.ft_riley_adjustment.addItem("No")
         self.ft_riley_adjustment.addItem("Yes")
         self.ft_riley_adjustment.setFixedWidth(70)
@@ -261,11 +377,7 @@ class UI(QWidget):
         self.calculate_estimate_button = QPushButton()
         self.calculate_estimate_button.clicked.connect(self.calculate_estimate)
         self.calculate_estimate_button.setText("Calculate")
-        self.calculate_estimate_button.setStyleSheet("QPushButton {background-color: rgb(255, 179, 102);"
-                                                     "border: 2px solid rgb(255, 128, 0);"
-                                                     "border-radius: 5px;"
-                                                     "padding: 5px 5px;}"
-                                                     "QPushButton::hover {background-color: rgb(255, 128, 0);}")
+        self.calculate_estimate_button.setStyleSheet(calculate_button_stylesheet)
         self.main_estimate_label = QLabel()
         self.unload_only_estimate_label = QLabel()
         self.load_only_estimate_label = QLabel()
@@ -286,9 +398,15 @@ class UI(QWidget):
         self.details_frame = QFrame()
         self.details_layout = QFormLayout()
         self.details_frame.setLayout(self.details_layout)
-        self.details_frame.setStyleSheet("QFrame {border: 2px solid rgb(128, 179, 255);"
-                                         "border-radius: 5px;}"
-                                         "QLabel {border:none;}")
+        self.details_frame.setStyleSheet("""
+            QFrame {
+                border: 2px solid rgb(128, 179, 255);
+                border-radius: 5px;
+            }
+            QLabel {
+                border:none;
+            }"""
+        )
         self.details_1 = QLabel()
         self.details_2 = QLabel()
         self.details_3 = QLabel()
@@ -316,47 +434,63 @@ class UI(QWidget):
         self.details_frame.hide()
 
         # we place defined UI elements to the GUI below
+        self.moving_layout.setRowMinimumHeight(0, 10)
+        self.moving_layout.setColumnMinimumWidth(0, 30)
+        self.moving_layout.setColumnMinimumWidth(7, 30)
+        self.moving_layout.setColumnMinimumWidth(11, 30)
+        self.moving_layout.setRowMinimumHeight(24, 10)
+        self.moving_layout.setColumnMinimumWidth(8, 80)
+        self.moving_layout.setColumnMinimumWidth(9, 80)
+        self.moving_layout.setColumnMinimumWidth(10, 80)
+
+        self.main_layout.addWidget(self.moving_tab, 0, 4, 1, 1)
+        self.main_layout.addWidget(self.packing_tab, 0, 5, 1, 1)
         self.main_layout.setRowMinimumHeight(0, 10)
         self.main_layout.setColumnMinimumWidth(0, 30)
-        self.main_layout.setColumnMinimumWidth(7, 30)
-        self.main_layout.setColumnMinimumWidth(11, 30)
-        self.main_layout.setRowMinimumHeight(23, 10)
-        self.main_layout.setColumnMinimumWidth(8, 80)
-        self.main_layout.setColumnMinimumWidth(9, 80)
-        self.main_layout.setColumnMinimumWidth(10, 80)
-        self.main_layout.addWidget(self.kitchen_tab, 1, 1, 1, 1)
-        self.main_layout.addWidget(self.bedroom_tab, 1, 2, 1, 1)
-        self.main_layout.addWidget(self.living_tab, 1, 3, 1, 1)
-        self.main_layout.addWidget(self.outside_tab, 1, 4, 1, 1)
-        self.main_layout.addWidget(self.office_tab, 1, 5, 1, 1)
-        self.main_layout.addWidget(self.boxes_tab, 1, 6, 1, 1)
-        self.main_layout.addWidget(self.packing_tab, 1, 7, 1, 1)
-        self.main_layout.addWidget(self.kitchen_scroll_area, 2, 1, 20, 6)
-        self.main_layout.addWidget(self.bedroom_scroll_area, 2, 1, 20, 6)
-        self.main_layout.addWidget(self.living_scroll_area, 2, 1, 20, 6)
-        self.main_layout.addWidget(self.outside_scroll_area, 2, 1, 20, 6)
-        self.main_layout.addWidget(self.office_scroll_area, 2, 1, 20, 6)
-        self.main_layout.addWidget(self.boxes_scroll_area, 2, 1, 20, 6)
-        self.main_layout.addWidget(self.packing_scroll_area, 2, 1, 20, 6)
-        self.main_layout.addWidget(self.clear_selections_button, 22, 6, 1, 1, alignment=Qt.AlignRight)
-        self.main_layout.addWidget(self.edit_items_button, 22, 1, 1, 1)
-        self.main_layout.addWidget(self.edit_formulas_button, 22, 2, 1, 1)
-        self.main_layout.addWidget(self.edit_value_multiplier_button, 22, 3, 1, 1)
-        self.main_layout.addWidget(self.import_button, 22, 4, 1, 1)
-        self.main_layout.addWidget(self.round_trip_distance_label, 2, 8, 1, 2)
-        self.main_layout.addWidget(self.round_trip_distance,  2, 10, 1, 1, alignment=Qt.AlignRight)
-        self.main_layout.addWidget(self.estimator_adjustment_label, 3, 8, 1, 2)
-        self.main_layout.addWidget(self.estimator_adjustment, 3, 10, 1, 1, alignment=Qt.AlignRight)
-        self.main_layout.addWidget(self.ft_riley_adjustment_label, 4, 8, 1, 2)
-        self.main_layout.addWidget(self.ft_riley_adjustment, 4, 10, 1, 1, alignment=Qt.AlignRight)
-        self.main_layout.addWidget(self.slider_frame, 5, 8, 2, 3, alignment=Qt.AlignCenter)
-        self.main_layout.addWidget(self.calculate_estimate_button, 7, 8, 1, 3, alignment=Qt.AlignCenter)
-        self.main_layout.addWidget(self.main_estimate_label, 8, 8, 1, 3, alignment=Qt.AlignBottom)
-        self.main_layout.addWidget(self.unload_only_estimate_label, 9, 8, 1, 3)
-        self.main_layout.addWidget(self.load_only_estimate_label, 10, 8, 1, 3, alignment=Qt.AlignTop)
-        self.main_layout.addWidget(self.see_details_button, 22, 8, 1, 2, alignment=Qt.AlignLeft)
-        self.main_layout.addWidget(self.details_frame, 11, 8, 11, 3, alignment=Qt.AlignCenter)
-        self.main_layout.addWidget(self.export_list_button, 22, 9, 1, 2, alignment=Qt.AlignRight)
+        self.main_layout.setRowMinimumHeight(24, 10)
+
+        self.moving_layout.addWidget(self.kitchen_tab, 2, 1, 1, 1)
+        self.moving_layout.addWidget(self.bedroom_tab, 2, 2, 1, 1)
+        self.moving_layout.addWidget(self.living_tab, 2, 3, 1, 1)
+        self.moving_layout.addWidget(self.outside_tab, 2, 4, 1, 1)
+        self.moving_layout.addWidget(self.office_tab, 2, 5, 1, 1)
+        self.moving_layout.addWidget(self.boxes_tab, 2, 6, 1, 1)
+        self.moving_layout.addWidget(self.kitchen_scroll_area, 3, 1, 20, 6)
+        self.moving_layout.addWidget(self.bedroom_scroll_area, 3, 1, 20, 6)
+        self.moving_layout.addWidget(self.living_scroll_area, 3, 1, 20, 6)
+        self.moving_layout.addWidget(self.outside_scroll_area, 3, 1, 20, 6)
+        self.moving_layout.addWidget(self.office_scroll_area, 3, 1, 20, 6)
+        self.moving_layout.addWidget(self.boxes_scroll_area, 3, 1, 20, 6)
+        self.moving_layout.addWidget(self.clear_selections_button, 23, 6, 1, 1, alignment=Qt.AlignRight)
+        self.moving_layout.addWidget(self.edit_items_button, 23, 1, 1, 1)
+        self.moving_layout.addWidget(self.edit_formulas_button, 23, 2, 1, 1)
+        self.moving_layout.addWidget(self.edit_value_multiplier_button, 23, 3, 1, 1)
+        self.moving_layout.addWidget(self.import_button, 23, 4, 1, 1)
+        self.moving_layout.addWidget(self.round_trip_distance_label, 3, 8, 1, 2)
+        self.moving_layout.addWidget(self.round_trip_distance, 3, 10, 1, 1, alignment=Qt.AlignRight)
+        self.moving_layout.addWidget(self.estimator_adjustment_label, 4, 8, 1, 2)
+        self.moving_layout.addWidget(self.estimator_adjustment, 4, 10, 1, 1, alignment=Qt.AlignRight)
+        self.moving_layout.addWidget(self.ft_riley_adjustment_label, 5, 8, 1, 2)
+        self.moving_layout.addWidget(self.ft_riley_adjustment, 5, 10, 1, 1, alignment=Qt.AlignRight)
+        self.moving_layout.addWidget(self.slider_frame, 6, 8, 2, 3, alignment=Qt.AlignCenter)
+        self.moving_layout.addWidget(self.calculate_estimate_button, 8, 8, 1, 3, alignment=Qt.AlignCenter)
+        self.moving_layout.addWidget(self.main_estimate_label, 9, 8, 1, 3, alignment=Qt.AlignBottom)
+        self.moving_layout.addWidget(self.unload_only_estimate_label, 10, 8, 1, 3)
+        self.moving_layout.addWidget(self.load_only_estimate_label, 11, 8, 1, 3, alignment=Qt.AlignTop)
+        self.moving_layout.addWidget(self.see_details_button, 23, 8, 1, 2, alignment=Qt.AlignLeft)
+        self.moving_layout.addWidget(self.details_frame, 12, 8, 11, 3, alignment=Qt.AlignCenter)
+        self.moving_layout.addWidget(self.export_list_button, 23, 9, 1, 2, alignment=Qt.AlignRight)
+
+        self.packing_layout.addWidget(self.packing_scroll_area, 3, 1, 20, 6)
+        self.packing_layout.addWidget(self.table_widget, 3, 7, 6, 3, alignment=Qt.AlignLeft)
+        self.packing_layout.addWidget(self.packs_costs_frame, 9, 7, 5, 3, alignment=Qt.AlignLeft)
+        self.packing_layout.addWidget(self.calculate_packing_cost_button, 23, 6, 1, 1, alignment=Qt.AlignRight)
+        self.packing_layout.addWidget(self.clear_packing_selections_button, 23, 5, 1, 1, alignment=Qt.AlignRight)
+        self.packing_layout.addWidget(self.edit_supplies_button, 23, 1, 1, 1)
+        self.packing_layout.addWidget(self.edit_room_materials_button, 23, 2, 1, 1)
+        self.packing_layout.setRowMinimumHeight(0, 10)
+        self.packing_layout.setColumnMinimumWidth(0, 30)
+        self.packing_layout.setRowMinimumHeight(24, 10)
 
         # we set initial properties below
         self.i_kitchen = 0
@@ -369,6 +503,9 @@ class UI(QWidget):
         self.see_details_button.hide()
         self.export_list_button.hide()
         self.get_kitchen_tab()
+        self.i_room = 0
+        self.moving_tab.setStyleSheet("color: rgb(179, 89, 0);")
+        self.hide_layout(self.packing_layout)
         self.import_note = ''
 
         # set font size below
@@ -384,14 +521,13 @@ class UI(QWidget):
             item.setFont(QFont('Times', 9))
 
         # pull info from database and put into app below
-        conn = sqlite3.connect('items_database.db')
+        conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
-        sql = '''SELECT item_name, hidden_value, item_tab FROM items'''
-        cursor.execute(sql)
+        cursor.execute('''SELECT item_name, hidden_value, item_tab FROM items''')
         # item list will hold all data of items inside a list
         self.all_items = cursor.fetchall()
         self.formula_numbers = []
-        conn.close()
+
         for item in self.all_items:
             if item[2] == 'Kitchen':
                 self.add_row(self.kitchen_widget_layout, item[0], item[2])
@@ -405,6 +541,15 @@ class UI(QWidget):
                 self.add_row(self.office_widget_layout, item[0], item[2])
             elif item[2] == 'Boxes':
                 self.add_row(self.boxes_widget_layout, item[0], item[2])
+
+        self.all_supplies = []
+        cursor.execute("""SELECT * FROM rooms ORDER BY id ASC""")
+        self.all_rooms = cursor.fetchall()
+        for item in self.all_rooms:
+            self.add_row(self.packing_widget_layout, item[1], "Packing")
+            self.i_room += 1
+
+        conn.close()
 
         # adjust minimum scrollable area width below
         row_button_width = self.outside_scroll_area.findChild(QPushButton).width()
@@ -428,6 +573,9 @@ class UI(QWidget):
         for label in self.outside_scroll_area.findChildren(QLabel):
             label.adjustSize()
             label_width.append(label.width())
+        for label in self.packing_scroll_area.findChildren(QLabel):
+            label.adjustSize()
+            label_width.append(label.width())
 
         row_height = self.outside_scroll_area.findChild(QFrame).height() * 10
         min_scroll_width = max(label_width) + row_button_width + row_button_width + row_line_edit_width + 20
@@ -437,14 +585,45 @@ class UI(QWidget):
         self.boxes_scroll_area.setMinimumSize(min_scroll_width, row_height)
         self.office_scroll_area.setMinimumSize(min_scroll_width, row_height)
         self.outside_scroll_area.setMinimumSize(min_scroll_width, row_height)
-        self.packing_scroll_area.setMinimumSize(min_scroll_width, row_height)
+        self.packing_scroll_area.setMinimumSize(400, 300)
 
         # set initial size of the main window
         width = self.width()
         self.resize(800, width)
 
     ### METHODS ###
-    def set_scroll_area_settings(self, scroll_area, widget, widget_layout, is_packing = False):
+    def show_layout(self, layout):
+        for i in range(layout.count()):
+            item = layout.itemAt(i)
+            if item.widget():
+                item.widget().show()
+            elif item.layout():
+                self.show_layout(item.layout())
+
+    def hide_layout(self, layout):
+        for i in range(layout.count()):
+            item = layout.itemAt(i)
+            if item.widget():
+                item.widget().hide()
+            elif item.layout():
+                self.hide_layout(item.layout())
+
+    def show_and_hide_layout(self, shown_layout, hidden_layout, is_moving = False):
+        self.show_layout(shown_layout)
+        self.hide_layout(hidden_layout)
+        if is_moving:
+            self.see_details_button.hide()
+            self.export_list_button.hide()
+            self.get_kitchen_tab()
+            self.details_frame.hide()
+            self.moving_tab.setStyleSheet("color: rgb(179, 89, 0);")
+            self.packing_tab.setStyleSheet("color: black;")
+        else:
+            self.packing_tab.setStyleSheet("color: rgb(179, 89, 0);")
+            self.moving_tab.setStyleSheet("color: black;")
+
+    @staticmethod
+    def set_scroll_area_settings(scroll_area, widget, widget_layout):
         scroll_area.setWidgetResizable(True)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         scrollbar = scroll_area.children()[2]
@@ -479,9 +658,6 @@ class UI(QWidget):
 
     def get_boxes_tab(self):
         self.show_one_tab_and_hide_others("boxes")
-
-    def get_packing_tab(self):
-        self.show_one_tab_and_hide_others("packing")
 
     def change_slider_label(self):
         current_value = self.slider.value()
@@ -544,7 +720,8 @@ class UI(QWidget):
             self.i_office += 1
         elif tab == 'Boxes':
             self.i_boxes += 1
-        self.i_total += 1
+        if tab != 'Packing':
+            self.i_total += 1
 
     def minus_number(self):
         sender = self.sender()
@@ -577,6 +754,7 @@ class UI(QWidget):
             item_value.setEnabled(True)
             item_tab.setEnabled(True)
             save_button.setEnabled(True)
+            secret_key.setEnabled(True)
             save_button.setToolTip("Leave item name blank to delete this item")
             if name == "-- Add New Item --":
                 item_name.clear()
@@ -634,7 +812,7 @@ class UI(QWidget):
         edit_items_widget.setLayout(edit_items_layout)
         # get latest info from database below
         self.all_items.clear()
-        conn = sqlite3.connect('items_database.db')
+        conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
         sql = '''SELECT item_name, hidden_value, item_tab FROM items'''
         cursor.execute(sql)
@@ -668,7 +846,7 @@ class UI(QWidget):
         item_tab.addItem("Boxes")
         save_button = QPushButton()
         save_button.clicked.connect(lambda: self.save_item(item_name.text(), item_value.text(), item_tab.currentText(),
-                                                           choose_item_combobox.currentText()))
+                                                           choose_item_combobox.currentText(), secret_key))
         save_button.setText("Save")
         save_button.setEnabled(False)
         # place elements to window below
@@ -680,6 +858,13 @@ class UI(QWidget):
         edit_items_layout.addWidget(item_tab_label, 3, 0, 1, 1)
         edit_items_layout.addWidget(item_tab, 3, 1, 1, 1)
         edit_items_layout.addWidget(save_button, 4, 1, 1, 1)
+        ### secret key
+        secret_key_label = QLabel()
+        secret_key_label.setText("Secret Key:")
+        secret_key = QLineEdit()
+        secret_key.setEnabled(False)
+        edit_items_layout.addWidget(secret_key_label, 5, 0, 1, 1)
+        edit_items_layout.addWidget(secret_key, 5, 1, 1, 1)
         for item in self.edit_items_window.findChildren(QLabel):
             item.setFont(QFont('Times', 10))
         for item in self.edit_items_window.findChildren(QComboBox):
@@ -690,11 +875,14 @@ class UI(QWidget):
             item.setFont(QFont('Times', 9))
         self.edit_items_window.show()
 
-    def save_item(self, name, value, tab, where):
+    def save_item(self, name, value, tab, where, secret_key):
+        if secret_key.text() != ADMIN_PW:
+            secret_key.setText("Wrong secret key")
+            return
         if value == '':
             return
         if where == "-- Add New Item --":
-            conn = sqlite3.connect('items_database.db')
+            conn = psycopg2.connect(DB_URL)
             cursor = conn.cursor()
             sql = f'''INSERT INTO items VALUES
             ('{name}', '{value}', '{tab}')
@@ -706,7 +894,7 @@ class UI(QWidget):
             conn.close()
         else:
             if name == '':
-                conn = sqlite3.connect('items_database.db')
+                conn = psycopg2.connect(DB_URL)
                 cursor = conn.cursor()
                 sql = f'''DELETE FROM items WHERE item_name = '{where}'
                 '''
@@ -714,7 +902,7 @@ class UI(QWidget):
                 conn.commit()
                 conn.close()
             else:
-                conn = sqlite3.connect('items_database.db')
+                conn = psycopg2.connect(DB_URL)
                 cursor = conn.cursor()
                 sql = f'''UPDATE items SET
                 item_name = '{name}',
@@ -742,7 +930,7 @@ class UI(QWidget):
         while self.i_boxes > 0:
             self.boxes_widget_layout.removeRow(0)
             self.i_boxes -= 1
-        conn = sqlite3.connect('items_database.db')
+        conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
         sql = '''SELECT item_name, hidden_value, item_tab FROM items'''
         cursor.execute(sql)
@@ -768,6 +956,7 @@ class UI(QWidget):
 
         def change_edited_formula():
             save_button.setEnabled(True)
+            secret_key.setEnabled(True)
             formula = choose_item_combobox.currentText().replace(' Formula', '')
             line_1.show()
             line_2.show()
@@ -874,7 +1063,7 @@ class UI(QWidget):
         edit_formulas_layout = QGridLayout()
         edit_formulas_widget.setLayout(edit_formulas_layout)
         # get latest info from database below
-        conn = sqlite3.connect('items_database.db')
+        conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
         sql = '''SELECT formula_name, formula_numbers FROM formulas'''
         cursor.execute(sql)
@@ -913,10 +1102,17 @@ class UI(QWidget):
         save_button.setFixedWidth(80)
         save_button.clicked.connect(lambda: self.save_formula(line_1.text(), line_2.text(),
                                                             choose_item_combobox.currentText().replace(' Formula', ''),
-                                                              line_2.isVisible()))
+                                                              line_2.isVisible(), secret_key))
         edit_formulas_layout.addWidget(choose_item_combobox, 0, 0, 1, 1)
         edit_formulas_layout.addWidget(formula_frame, 1, 0, 1, 1, alignment=Qt.AlignLeft)
         edit_formulas_layout.addWidget(save_button, 2, 0, 1, 1, alignment=Qt.AlignRight)
+        ### secret key
+        secret_key_label = QLabel()
+        secret_key_label.setText("Secret Key:")
+        secret_key = QLineEdit()
+        secret_key.setEnabled(False)
+        edit_formulas_layout.addWidget(secret_key_label, 3, 0, 1, 1, alignment=Qt.AlignLeft)
+        edit_formulas_layout.addWidget(secret_key, 3, 0, 1, 1, alignment=Qt.AlignRight)
         for item in self.edit_formulas_window.findChildren(QLabel):
             item.setFont(QFont('Times', 9))
         for item in self.edit_formulas_window.findChildren(QComboBox):
@@ -927,11 +1123,14 @@ class UI(QWidget):
             item.setFont(QFont('Times', 9))
         self.edit_formulas_window.show()
 
-    def save_formula(self, value_1, value_2, where, line_2):
+    def save_formula(self, value_1, value_2, where, line_2, secret_key):
+        if secret_key.text() != ADMIN_PW:
+            secret_key.setText("Wrong secret key")
+            return
         if value_1 == '':
             return
         if not line_2:
-            conn = sqlite3.connect('items_database.db')
+            conn = psycopg2.connect(DB_URL)
             cursor = conn.cursor()
             sql = f'''UPDATE formulas SET
                 formula_numbers = '{value_1}' WHERE formula_name = '{where}'
@@ -944,7 +1143,7 @@ class UI(QWidget):
                 return
             values = [value_1, value_2]
             value = '-'.join(values)
-            conn = sqlite3.connect('items_database.db')
+            conn = psycopg2.connect(DB_URL)
             cursor = conn.cursor()
             sql = f'''UPDATE formulas SET
                 formula_numbers = '{value}' WHERE formula_name = '{where}'
@@ -979,7 +1178,7 @@ class UI(QWidget):
         edit_values_layout = QGridLayout()
         edit_values_widget.setLayout(edit_values_layout)
         # get latest info from database below
-        conn = sqlite3.connect('items_database.db')
+        conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
         sql = '''SELECT formula_numbers FROM formulas'''
         cursor.execute(sql)
@@ -1050,7 +1249,8 @@ class UI(QWidget):
         save_button.clicked.connect(lambda: self.save_value(line_11.text(), line_12.text(), line_21.text(),
                                                             line_22.text(), line_31.text(), line_32.text(),
                                                             line_41.text(), line_42.text(), line_51.text(),
-                                                            line_52.text(), line_61.text(), line_62.text()))
+                                                            line_52.text(), line_61.text(), line_62.text(),
+                                                            secret_key))
         save_button.setText("Save")
         edit_values_layout.addWidget(label_11, 0, 0, 1, 1)
         edit_values_layout.addWidget(label_21, 1, 0, 1, 1)
@@ -1077,6 +1277,13 @@ class UI(QWidget):
         edit_values_layout.addWidget(line_52, 4, 3, 1, 1)
         edit_values_layout.addWidget(line_62, 5, 3, 1, 1)
         edit_values_layout.addWidget(save_button, 6, 3, 1, 1)
+        ### secret key
+        secret_key_label = QLabel()
+        secret_key_label.setText("Secret Key:")
+        secret_key = QLineEdit()
+        secret_key.setEnabled(True)
+        edit_values_layout.addWidget(secret_key_label, 7, 0, 1, 1)
+        edit_values_layout.addWidget(secret_key, 7, 1, 1, 1)
         for item in self.edit_values_window.findChildren(QLabel):
             item.setFont(QFont('Times', 9))
         for item in self.edit_values_window.findChildren(QLineEdit):
@@ -1086,10 +1293,13 @@ class UI(QWidget):
         self.edit_values_window.show()
 
     def save_value(self, value1, value2, value3, value4, value5, value6, value7, value8, value9, value10, value11,
-                   value12):
+                   value12, secret_key):
+        if secret_key.text() != ADMIN_PW:
+            secret_key.setText("Wrong secret key")
+            return
         values = [value1, value2, value3, value4, value5, value6, value7, value8, value9, value10, value11, value12]
         values_raw = '-'.join(values)
-        conn = sqlite3.connect('items_database.db')
+        conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
         sql = f'''UPDATE formulas SET
                 formula_numbers = '{values_raw}' WHERE formula_name = 'Hidden Value Multiplier'
@@ -1104,7 +1314,7 @@ class UI(QWidget):
         file_name, _ = QFileDialog.getOpenFileName(self, "Choose File", "", "CSV Files(*.csv)")
         if file_name:
             self.clear_selections()
-            f = pd.read_csv(file_name)
+            f = pandas.read_csv(file_name)
             try:
                 rtd_raw = f['DETAILS'][1]
                 rtd = str(rtd_raw[rtd_raw.index('RTD=')+len('RTD='):rtd_raw.index('):')])
@@ -1229,6 +1439,10 @@ class UI(QWidget):
         for item in self.boxes_widget.findChildren(QLineEdit):
             item.setText("0")
         for item in self.office_widget.findChildren(QLineEdit):
+            item.setText("0")
+
+    def clear_packing_selections(self):
+        for item in self.packing_widget.findChildren(QLineEdit):
             item.setText("0")
 
     def calculate_estimate(self):
@@ -1389,7 +1603,7 @@ class UI(QWidget):
                 window.close()
 
         # get latest formulas below
-        conn = sqlite3.connect('items_database.db')
+        conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
         sql = '''SELECT formula_name, formula_numbers FROM formulas'''
         cursor.execute(sql)
@@ -1584,6 +1798,467 @@ class UI(QWidget):
                                                                     second_truck_addition, small_addition, med_addition,
                                                                     large_addition, estimator_addition, adjust,
                                                                     final_value, scale))
+
+    def calculate_packing_cost(self):
+        # get latest rooms below
+        conn = psycopg2.connect(DB_URL)
+        cursor = conn.cursor()
+        cursor.execute('''SELECT * FROM rooms ORDER BY id ASC''')
+        self.all_rooms = cursor.fetchall()
+
+        cursor.execute('''SELECT * FROM supplies ORDER BY id ASC''')
+        self.all_supplies = cursor.fetchall()
+        conn.close()
+
+        item_list = []
+        number_list = []
+
+        # get names as a list
+        for item in self.packing_widget.findChildren(QLabel):
+            item_list.append(item.text())
+
+        # get numbers as a list
+        for item in self.packing_widget.findChildren(QLineEdit):
+            if not item.text() == '':
+                number_list.append(item.text())
+            else:
+                number_list.append('0')
+
+        small_box_count = 0
+        medium_box_count = 0
+        large_box_count = 0
+        paper_roll_count = 0
+        tape_roll_count = 0
+        labor_count = 0
+
+        for index, item in enumerate(number_list):
+            if item != '0':
+                room_name = item_list[index]
+                room = next((item for item in self.all_rooms if item[1] == room_name), None)
+                if room is None:
+                    return
+                small_box_count += int(item) * room[2]
+                medium_box_count += int(item) * room[3]
+                large_box_count += int(item) * room[4]
+                paper_roll_count += int(item) * room[5]
+                tape_roll_count += int(item) * room[6]
+                labor_count += int(item) * room[7]
+        
+        # multiply all counts with order_price
+        small_box_cost = small_box_count * self.all_supplies[0][3]
+        medium_box_cost = medium_box_count * self.all_supplies[1][3]
+        large_box_cost = large_box_count * self.all_supplies[2][3]
+        paper_roll_cost = paper_roll_count * self.all_supplies[3][3]
+        tape_roll_cost = tape_roll_count * self.all_supplies[4][3]
+        small_box_resell_price = small_box_count * self.all_supplies[0][4]
+        medium_box_resell_price = medium_box_count * self.all_supplies[1][4]
+        large_box_resell_price = large_box_count * self.all_supplies[2][4]
+        paper_roll_resell_price = paper_roll_count * self.all_supplies[3][4]
+        tape_roll_resell_price = tape_roll_count * self.all_supplies[4][4]
+        
+        total_supply_cost = (
+            small_box_cost +
+            medium_box_cost +
+            large_box_cost +
+            paper_roll_cost +
+            tape_roll_cost
+        )
+        total_packing_cost_without_labor = (
+            small_box_resell_price +
+            medium_box_resell_price +
+            large_box_resell_price +
+            paper_roll_resell_price +
+            tape_roll_resell_price
+        )
+
+        labor_cost = labor_count * self.all_supplies[8][3]
+        total_packing_cost = total_packing_cost_without_labor + labor_cost
+
+        # set new calculated numbers
+        self.table_widget.setItem(0, 1, QTableWidgetItem(str(round(small_box_count, 2) if is_float_not_integer(small_box_count) else int(small_box_count))))
+        self.table_widget.setItem(0, 2, QTableWidgetItem("$" + str(round(small_box_cost, 2) if is_float_not_integer(small_box_cost) else int(small_box_cost))))
+        self.table_widget.setItem(0, 3, QTableWidgetItem("$" + str(round(small_box_resell_price, 2) if is_float_not_integer(small_box_resell_price) else int(small_box_resell_price))))
+        self.table_widget.setItem(0, 4, QTableWidgetItem("$" + str(round(small_box_resell_price - small_box_cost, 2) if is_float_not_integer(small_box_resell_price - small_box_cost) else int(small_box_resell_price - small_box_cost))))
+
+        self.table_widget.setItem(1, 1, QTableWidgetItem(str(round(medium_box_count, 2) if is_float_not_integer(medium_box_count) else int(medium_box_count))))
+        self.table_widget.setItem(1, 2, QTableWidgetItem("$" + str(round(medium_box_cost, 2) if is_float_not_integer(medium_box_cost) else int(medium_box_cost))))
+        self.table_widget.setItem(1, 3, QTableWidgetItem("$" + str(round(medium_box_resell_price, 2) if is_float_not_integer(medium_box_resell_price) else int(medium_box_resell_price))))
+        self.table_widget.setItem(1, 4, QTableWidgetItem("$" + str(round(medium_box_resell_price - medium_box_cost, 2) if is_float_not_integer(medium_box_resell_price - medium_box_cost) else int(medium_box_resell_price - medium_box_cost))))
+
+        self.table_widget.setItem(2, 1, QTableWidgetItem(str(round(large_box_count, 2) if is_float_not_integer(large_box_count) else int(large_box_count))))
+        self.table_widget.setItem(2, 2, QTableWidgetItem("$" + str(round(large_box_cost, 2) if is_float_not_integer(large_box_cost) else int(large_box_cost))))
+        self.table_widget.setItem(2, 3, QTableWidgetItem("$" + str(round(large_box_resell_price, 2) if is_float_not_integer(large_box_resell_price) else int(large_box_resell_price))))
+        self.table_widget.setItem(2, 4, QTableWidgetItem("$" + str(round(large_box_resell_price - large_box_cost, 2) if is_float_not_integer(large_box_resell_price - large_box_cost) else int(large_box_resell_price - large_box_cost))))
+
+        self.table_widget.setItem(3, 1, QTableWidgetItem(str(round(paper_roll_count, 2) if is_float_not_integer(paper_roll_count) else int(paper_roll_count))))
+        self.table_widget.setItem(3, 2, QTableWidgetItem("$" + str(round(paper_roll_cost, 2) if is_float_not_integer(paper_roll_cost) else int(paper_roll_cost))))
+        self.table_widget.setItem(3, 3, QTableWidgetItem("$" + str(round(paper_roll_resell_price, 2) if is_float_not_integer(paper_roll_resell_price) else int(paper_roll_resell_price))))
+        self.table_widget.setItem(3, 4, QTableWidgetItem("$" + str(round(paper_roll_resell_price - paper_roll_cost, 2) if is_float_not_integer(paper_roll_resell_price - paper_roll_cost) else int(paper_roll_resell_price - paper_roll_cost))))
+
+        self.table_widget.setItem(4, 1, QTableWidgetItem(str(round(tape_roll_count, 2) if is_float_not_integer(tape_roll_count) else int(tape_roll_count))))
+        self.table_widget.setItem(4, 2, QTableWidgetItem("$" + str(round(tape_roll_cost, 2) if is_float_not_integer(tape_roll_cost) else int(tape_roll_cost))))
+        self.table_widget.setItem(4, 3, QTableWidgetItem("$" + str(round(tape_roll_resell_price, 2) if is_float_not_integer(tape_roll_resell_price) else int(tape_roll_resell_price))))
+        self.table_widget.setItem(4, 4, QTableWidgetItem("$" + str(round(tape_roll_resell_price - tape_roll_cost, 2) if is_float_not_integer(tape_roll_resell_price - tape_roll_cost) else int(tape_roll_resell_price - tape_roll_cost))))
+
+        for row in range(self.table_widget.rowCount()):
+            for col in range(1, self.table_widget.columnCount()):
+                item = self.table_widget.item(row, col)
+                if item is not None:
+                    item.setTextAlignment(Qt.AlignCenter)
+
+        self.packs_labor_hours.setText(f"Labor Hours: {labor_count if is_float_not_integer(labor_count) else int(labor_count)} (${round(labor_cost, 2) if is_float_not_integer(labor_cost) else int(labor_cost)})")
+        self.packs_total_packing_cost.setText(f"Total Packing Cost: ${round(total_packing_cost, 2) if is_float_not_integer(total_packing_cost) else int(total_packing_cost)}")
+        self.packs_supply_cost.setText(f"Total Supply Cost: ${round(total_supply_cost, 2) if is_float_not_integer(total_supply_cost) else int(total_supply_cost)}")
+        self.packs_supply_profit.setText(
+            f"Total Supply Material Profit: ${round(total_packing_cost_without_labor - total_supply_cost, 2) if is_float_not_integer(total_packing_cost_without_labor - total_supply_cost) else int(total_packing_cost_without_labor - total_supply_cost)}"
+        )
+        self.packs_supply_resale_price.setText(f"Total Supply Resell Price: ${round(total_packing_cost_without_labor, 2) if is_float_not_integer(total_packing_cost_without_labor) else int(total_packing_cost_without_labor)}")
+
+    def edit_supply_costs(self):
+        def change_edited_supply():
+            name = choose_item_combobox.currentText()
+            item_supplier.setEnabled(True)
+            item_order_price.setEnabled(True)
+            item_resell_price.setEnabled(True)
+            save_supply_button.setEnabled(True)
+            secret_key.setEnabled(True)
+            for edited_item in self.all_supplies:
+                if edited_item[1] == name:
+                    item_supplier.setText(edited_item[2])
+                    item_order_price.setText(str(convert_integer_or_leave_float(edited_item[3])))
+                    item_resell_price.setText(str(convert_integer_or_leave_float(edited_item[4])))
+
+        self.edit_supply_costs_window = QDialog(None, Qt.WindowCloseButtonHint | Qt.WindowTitleHint)
+        self.edit_supply_costs_window.setWindowIcon(QIcon("icons/edit.png"))
+        layout = QGridLayout()
+        self.edit_supply_costs_window.setLayout(layout)
+        self.edit_supply_costs_window.setWindowTitle("Edit Supply Materials")
+        self.edit_supply_costs_window.setStyleSheet("QDialog {"
+                                             "background-color: rgb(225, 235, 240);"
+                                             "min-width: 400px;}"
+                                             "QPushButton {"
+                                             "background-color: rgb(165, 209, 255);"
+                                             "border: 2px solid rgb(128, 179, 255);"
+                                             "border-radius: 5px;"
+                                             "padding: 2px 5px;}"
+                                             "QPushButton::hover {"
+                                             "background-color: rgb(128, 179, 255);}"
+                                             "QLineEdit {"
+                                             "border: 1px solid rgb(128, 179, 255);"
+                                             "border-radius: 3px;"
+                                             "background-color: rgb(250, 250, 250);"
+                                             "padding: 2px 2px;}"
+                                             "QComboBox {border: 1px solid rgb(128, 179, 255);"
+                                             "border-radius: 3px;"
+                                             "background-color: rgb(250, 250, 250);"
+                                             "padding: 2px 2px;}"
+                                             "QComboBox::drop-down {"
+                                             "background-color: rgb(250, 250, 250);"
+                                             "border-radius: 3px;}"
+                                             "QComboBox::down-arrow {"
+                                             "image: url(icons/arrow.png);"
+                                             "width: 8px;"
+                                             "height: 8px;}"
+                                             "QComboBox QAbstractItemView {"
+                                             "background-color: rgb(250, 250, 250);}")
+        edit_supplies_widget = QWidget(self.edit_supply_costs_window)
+        layout.addWidget(edit_supplies_widget)
+        edit_supplies_layout = QGridLayout()
+        edit_supplies_widget.setLayout(edit_supplies_layout)
+        # get latest info from database below
+        if not self.all_supplies:
+            conn = psycopg2.connect(DB_URL)
+            cursor = conn.cursor()
+            cursor.execute('''SELECT * FROM supplies ORDER BY id ASC''')
+            self.all_supplies = cursor.fetchall()
+            conn.close()
+        # define UI elements below
+        choose_item_combobox = QComboBox()
+        choose_item_combobox.setPlaceholderText(" ")
+        for item in self.all_supplies:
+            choose_item_combobox.addItem(item[1])
+        choose_item_combobox.currentTextChanged.connect(change_edited_supply)
+        item_supplier_label = QLabel()
+        item_supplier_label.setText("Supplier Name:")
+        item_supplier = QLineEdit()
+        item_supplier.setEnabled(False)
+        item_order_price_label = QLabel()
+        item_order_price_label.setText("Order Price ($):")
+        item_order_price = QLineEdit()
+        item_order_price.setValidator(qDoubleValidator)
+        item_order_price.setEnabled(False)
+        item_resell_price_label = QLabel()
+        item_resell_price_label.setText("Resell Price ($):")
+        item_resell_price = QLineEdit()
+        item_resell_price.setValidator(qDoubleValidator)
+        item_resell_price.setEnabled(False)
+        save_supply_button = QPushButton()
+        save_supply_button.clicked.connect(lambda: self.save_supply(item_supplier.text(), item_order_price.text(), item_resell_price.text(),
+                                    choose_item_combobox.currentText(), secret_key))
+        save_supply_button.setText("Save")
+        save_supply_button.setEnabled(False)
+        # place elements to window below
+        edit_supplies_layout.addWidget(choose_item_combobox, 0, 0, 1, 2)
+        edit_supplies_layout.addWidget(item_supplier_label, 1, 0, 1, 1)
+        edit_supplies_layout.addWidget(item_supplier, 1, 1, 1, 1)
+        edit_supplies_layout.addWidget(item_order_price_label, 2, 0, 1, 1)
+        edit_supplies_layout.addWidget(item_order_price, 2, 1, 1, 1)
+        edit_supplies_layout.addWidget(item_resell_price_label, 3, 0, 1, 1)
+        edit_supplies_layout.addWidget(item_resell_price, 3, 1, 1, 1)
+        edit_supplies_layout.addWidget(save_supply_button, 4, 1, 1, 1)
+        ### secret key
+        secret_key_label = QLabel()
+        secret_key_label.setText("Secret Key:")
+        secret_key = QLineEdit()
+        secret_key.setEnabled(False)
+        edit_supplies_layout.addWidget(secret_key_label, 5, 0, 1, 1)
+        edit_supplies_layout.addWidget(secret_key, 5, 1, 1, 1)
+        for item in self.edit_supply_costs_window.findChildren(QLabel):
+            item.setFont(QFont('Times', 10))
+        for item in self.edit_supply_costs_window.findChildren(QComboBox):
+            item.setFont(QFont('Times', 9))
+        for item in self.edit_supply_costs_window.findChildren(QLineEdit):
+            item.setFont(QFont('Times', 9))
+        for item in self.edit_supply_costs_window.findChildren(QPushButton):
+            item.setFont(QFont('Times', 9))
+        self.edit_supply_costs_window.show()
+
+    def save_supply(self, supplier, order_price, resell_price, where, secret_key):
+        if secret_key.text() != ADMIN_PW:
+            secret_key.setText("Wrong secret key")
+            return
+        if order_price == '' or resell_price == '':
+            return
+        conn = psycopg2.connect(DB_URL)
+        cursor = conn.cursor()
+        sql = f'''UPDATE supplies SET
+            supplier = '{supplier}',
+            order_price = {float(order_price)},
+            resell_price = {float(resell_price)}
+            WHERE supply_name = '{where}'
+        '''
+        cursor.execute(sql)
+        conn.commit()
+
+        sql = '''SELECT * FROM supplies ORDER BY id ASC'''
+        cursor.execute(sql)
+        self.all_supplies = cursor.fetchall()
+        conn.close()
+        self.edit_supply_costs_window.close()
+
+    def edit_room_materials(self):
+        def change_edited_room():
+            name = choose_item_combobox.currentText()
+            room_name.setEnabled(True)
+            small_boxes_quantity.setEnabled(True)
+            medium_boxes_quantity.setEnabled(True)
+            large_boxes_quantity.setEnabled(True)
+            paper_rolls_quantity.setEnabled(True)
+            tape_rolls_quantity.setEnabled(True)
+            save_room_button.setEnabled(True)
+            labors_quantity.setEnabled(True)
+            secret_key.setEnabled(True)
+            save_room_button.setToolTip("Leave room name blank to delete this room")
+            if name == "-- Add New Item --":
+                room_name.clear()
+                small_boxes_quantity.clear()
+                medium_boxes_quantity.clear()
+                large_boxes_quantity.clear()
+                paper_rolls_quantity.clear()
+                tape_rolls_quantity.clear()
+                labors_quantity.clear()
+            else:
+                for edited_item in self.all_rooms:
+                    if edited_item[1] == name:
+                        room_name.setText(str(edited_item[1]))
+                        small_boxes_quantity.setText(str(convert_integer_or_leave_float(edited_item[2])))
+                        medium_boxes_quantity.setText(str(convert_integer_or_leave_float(edited_item[3])))
+                        large_boxes_quantity.setText(str(convert_integer_or_leave_float(edited_item[4])))
+                        paper_rolls_quantity.setText(str(convert_integer_or_leave_float(edited_item[5])))
+                        tape_rolls_quantity.setText(str(convert_integer_or_leave_float(edited_item[6])))
+                        labors_quantity.setText(str(convert_integer_or_leave_float(edited_item[7])))
+
+        self.edit_room_window = QDialog(None, Qt.WindowCloseButtonHint | Qt.WindowTitleHint)
+        self.edit_room_window.setWindowIcon(QIcon("icons/edit.png"))
+        layout = QGridLayout()
+        self.edit_room_window.setLayout(layout)
+        self.edit_room_window.setWindowTitle("Edit Room Needs")
+        self.edit_room_window.setStyleSheet("QDialog {"
+                                             "background-color: rgb(225, 235, 240);"
+                                             "min-width: 400px;}"
+                                             "QPushButton {"
+                                             "background-color: rgb(165, 209, 255);"
+                                             "border: 2px solid rgb(128, 179, 255);"
+                                             "border-radius: 5px;"
+                                             "padding: 2px 5px;}"
+                                             "QPushButton::hover {"
+                                             "background-color: rgb(128, 179, 255);}"
+                                             "QLineEdit {"
+                                             "border: 1px solid rgb(128, 179, 255);"
+                                             "border-radius: 3px;"
+                                             "background-color: rgb(250, 250, 250);"
+                                             "padding: 2px 2px;}"
+                                             "QComboBox {border: 1px solid rgb(128, 179, 255);"
+                                             "border-radius: 3px;"
+                                             "background-color: rgb(250, 250, 250);"
+                                             "padding: 2px 2px;}"
+                                             "QComboBox::drop-down {"
+                                             "background-color: rgb(250, 250, 250);"
+                                             "border-radius: 3px;}"
+                                             "QComboBox::down-arrow {"
+                                             "image: url(icons/arrow.png);"
+                                             "width: 8px;"
+                                             "height: 8px;}"
+                                             "QComboBox QAbstractItemView {"
+                                             "background-color: rgb(250, 250, 250);}")
+        edit_room_widget = QWidget(self.edit_room_window)
+        layout.addWidget(edit_room_widget)
+        edit_room_layout = QGridLayout()
+        edit_room_widget.setLayout(edit_room_layout)
+        # get latest info from database below
+        if not self.all_rooms:
+            conn = psycopg2.connect(DB_URL)
+            cursor = conn.cursor()
+            cursor.execute('''SELECT * FROM rooms ORDER BY id ASC''')
+            self.all_rooms = cursor.fetchall()
+            conn.close()
+        # define UI elements below
+        choose_item_combobox = QComboBox()
+        choose_item_combobox.setPlaceholderText(" ")
+        choose_item_combobox.addItem("-- Add New Item --")
+        for item in self.all_rooms:
+            choose_item_combobox.addItem(item[1])
+        choose_item_combobox.currentTextChanged.connect(change_edited_room)
+        room_name_label = QLabel()
+        room_name_label.setText("Name:")
+        room_name = QLineEdit()
+        room_name.setEnabled(False)
+        small_box_label = QLabel()
+        small_box_label.setText("Small Boxes:")
+        small_boxes_quantity = QLineEdit()
+        small_boxes_quantity.setValidator(qDoubleValidator)
+        small_boxes_quantity.setEnabled(False)
+        medium_box_label = QLabel()
+        medium_box_label.setText("Medium Boxes:")
+        medium_boxes_quantity = QLineEdit()
+        medium_boxes_quantity.setValidator(qDoubleValidator)
+        medium_boxes_quantity.setEnabled(False)
+        large_box_label = QLabel()
+        large_box_label.setText("Large Boxes:")
+        large_boxes_quantity = QLineEdit()
+        large_boxes_quantity.setValidator(qDoubleValidator)
+        large_boxes_quantity.setEnabled(False)
+        paper_rolls_label = QLabel()
+        paper_rolls_label.setText("Paper Rolls:")
+        paper_rolls_quantity = QLineEdit()
+        paper_rolls_quantity.setValidator(qDoubleValidator)
+        paper_rolls_quantity.setEnabled(False)
+        tape_rolls_label = QLabel()
+        tape_rolls_label.setText("Tape Rolls:")
+        tape_rolls_quantity = QLineEdit()
+        tape_rolls_quantity.setValidator(qDoubleValidator)
+        tape_rolls_quantity.setEnabled(False)
+        labors_label = QLabel()
+        labors_label.setText("Labor Hours:")
+        labors_quantity = QLineEdit()
+        labors_quantity.setValidator(self.integer_only)
+        labors_quantity.setEnabled(False)
+        save_room_button = QPushButton()
+        save_room_button.clicked.connect(lambda: self.save_room(
+            room_name.text(), small_boxes_quantity.text(), medium_boxes_quantity.text(),
+            large_boxes_quantity.text(), paper_rolls_quantity.text(), tape_rolls_quantity.text(),
+            labors_quantity.text(), choose_item_combobox.currentText(), secret_key))
+        save_room_button.setText("Save")
+        save_room_button.setEnabled(False)
+        # place elements to window below
+        edit_room_layout.addWidget(choose_item_combobox, 0, 0, 1, 2)
+        edit_room_layout.addWidget(room_name_label, 1, 0, 1, 1)
+        edit_room_layout.addWidget(room_name, 1, 1, 1, 1)
+        edit_room_layout.addWidget(small_box_label, 2, 0, 1, 1)
+        edit_room_layout.addWidget(small_boxes_quantity, 2, 1, 1, 1)
+        edit_room_layout.addWidget(medium_box_label, 3, 0, 1, 1)
+        edit_room_layout.addWidget(medium_boxes_quantity, 3, 1, 1, 1)
+        edit_room_layout.addWidget(large_box_label, 4, 0, 1, 1)
+        edit_room_layout.addWidget(large_boxes_quantity, 4, 1, 1, 1)
+        edit_room_layout.addWidget(paper_rolls_label, 5, 0, 1, 1)
+        edit_room_layout.addWidget(paper_rolls_quantity, 5, 1, 1, 1)
+        edit_room_layout.addWidget(tape_rolls_label, 6, 0, 1, 1)
+        edit_room_layout.addWidget(tape_rolls_quantity, 6, 1, 1, 1)
+        edit_room_layout.addWidget(labors_label, 7, 0, 1, 1)
+        edit_room_layout.addWidget(labors_quantity, 7, 1, 1, 1)
+        edit_room_layout.addWidget(save_room_button, 8, 1, 1, 1)
+        ### secret key
+        secret_key_label = QLabel()
+        secret_key_label.setText("Secret Key:")
+        secret_key = QLineEdit()
+        secret_key.setEnabled(False)
+        edit_room_layout.addWidget(secret_key_label, 9, 0, 1, 1)
+        edit_room_layout.addWidget(secret_key, 9, 1, 1, 1)
+        for item in self.edit_room_window.findChildren(QLabel):
+            item.setFont(QFont('Times', 10))
+        for item in self.edit_room_window.findChildren(QComboBox):
+            item.setFont(QFont('Times', 9))
+        for item in self.edit_room_window.findChildren(QLineEdit):
+            item.setFont(QFont('Times', 9))
+        for item in self.edit_room_window.findChildren(QPushButton):
+            item.setFont(QFont('Times', 9))
+        self.edit_room_window.show()
+    
+    def save_room(self, name, small, medium, large, paper, tape, labor, where, secret_key):
+        if secret_key.text() != ADMIN_PW:
+            secret_key.setText("Wrong secret key")
+            return
+        if small == '' or medium == '' or large == '' or paper == '' or tape == '' or labor == '':
+            return
+        if where == "-- Add New Item --":
+            conn = psycopg2.connect(DB_URL)
+            cursor = conn.cursor()
+            sql = f'''INSERT INTO rooms 
+                (room_name, small_box_quantity, medium_box_quantity, large_box_quantity, paper_roll_quantity,
+                tape_roll_quantity, labor_hours) VALUES 
+            ('{name}', {float(small)}, {float(medium)}, {float(large)}, {float(paper)}, {float(tape)}, {float(labor)})
+            '''
+            cursor.execute(sql)
+            conn.commit()
+            conn.close()
+        else:
+            if name == '':
+                conn = psycopg2.connect(DB_URL)
+                cursor = conn.cursor()
+                sql = f'''DELETE FROM rooms WHERE room_name = '{where}'
+                '''
+                cursor.execute(sql)
+                conn.commit()
+                conn.close()
+            else:
+                conn = psycopg2.connect(DB_URL)
+                cursor = conn.cursor()
+                sql = f'''UPDATE rooms SET
+                    room_name = '{name}',
+                    small_box_quantity = {float(small)},
+                    medium_box_quantity = {float(medium)},
+                    large_box_quantity = {float(large)},
+                    paper_roll_quantity = {float(paper)},
+                    tape_roll_quantity = {float(tape)},
+                    labor_hours = {float(labor)}
+                WHERE room_name = '{where}'
+                '''
+                cursor.execute(sql)
+                conn.commit()
+                conn.close()
+        conn = psycopg2.connect(DB_URL)
+        cursor = conn.cursor()
+        sql = '''SELECT * FROM rooms ORDER BY id ASC'''
+        cursor.execute(sql)
+        # item list will hold all data of items inside a list
+        self.all_rooms = cursor.fetchall()
+        conn.close()
+        while self.i_room > 0:
+            self.packing_widget_layout.removeRow(0)
+            self.i_room -= 1
+        for item in self.all_rooms:
+            self.add_row(self.packing_widget_layout, item[1], "Packing")
+        self.edit_room_window.close()
 
 
 app = QApplication(sys.argv)
