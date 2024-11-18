@@ -2,6 +2,7 @@ import sys
 import csv
 import psycopg2
 import pandas
+import os
 
 # import PyQt5 and related classes
 from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QLineEdit, QSlider, QGridLayout, QScrollArea, QComboBox,\
@@ -9,6 +10,17 @@ from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QLineEdit, QSlide
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QFont
+
+def resource_path(relative_path):
+    """Get the absolute path to the resource, whether in a bundle or from the filesystem."""
+    try:
+        # PyInstaller sets _MEIPASS to a temporary folder when running from an executable
+        base_path = sys._MEIPASS
+    except Exception:
+        # If running in normal Python environment, use the current directory
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
 
 DB_URL = "URL_OF_DB"
 ADMIN_PW = "PW"
@@ -119,7 +131,7 @@ class UI(QWidget):
     def __init__(self):
         # main layout settings
         super(UI, self).__init__()
-        self.setWindowIcon(QIcon("icons/moving-truck.png"))
+        self.setWindowIcon(QIcon(resource_path("icons/moving-truck.png")))
         self.setWindowTitle("Flint Hills Moving - Pricing Calculator")
 
         self.moving_layout = QGridLayout()
@@ -684,7 +696,7 @@ class UI(QWidget):
         item_name.setText(f"{name}")
         minus_button = QPushButton(row_frame)
         minus_button.setStyleSheet("border: none; margin: 3px;")
-        minus_button.setIcon(QIcon("icons/minus.png"))
+        minus_button.setIcon(QIcon(resource_path(resource_path("icons/minus.png"))))
         number_of_item = QLineEdit(row_frame)
         number_of_item.setStyleSheet("background-color: rgb(250, 250, 250);")
         number_of_item.setValidator(self.integer_only)
@@ -692,7 +704,7 @@ class UI(QWidget):
         number_of_item.setFixedWidth(40)
         plus_button = QPushButton(row_frame)
         plus_button.setStyleSheet("border: none; margin: 3px;")
-        plus_button.setIcon(QIcon("icons/plus.png"))
+        plus_button.setIcon(QIcon(resource_path("icons/plus.png")))
         #####
         minus_button.clicked.connect(self.minus_number)
         plus_button.clicked.connect(self.plus_number)
@@ -775,7 +787,7 @@ class UI(QWidget):
                         item_tab.setCurrentText(edited_item[2])
 
         self.edit_items_window = QDialog(None, Qt.WindowCloseButtonHint | Qt.WindowTitleHint)
-        self.edit_items_window.setWindowIcon(QIcon("icons/edit.png"))
+        self.edit_items_window.setWindowIcon(QIcon(resource_path("icons/edit.png")))
         layout = QGridLayout()
         self.edit_items_window.setLayout(layout)
         self.edit_items_window.setWindowTitle("Edit Items")
@@ -1027,7 +1039,7 @@ class UI(QWidget):
                 line_2.hide()
 
         self.edit_formulas_window = QDialog(None, Qt.WindowCloseButtonHint | Qt.WindowTitleHint)
-        self.edit_formulas_window.setWindowIcon(QIcon("icons/formula.png"))
+        self.edit_formulas_window.setWindowIcon(QIcon(resource_path("icons/formula.png")))
         layout = QGridLayout()
         self.edit_formulas_window.setLayout(layout)
         self.edit_formulas_window.setWindowTitle("Edit Formulas")
@@ -1155,7 +1167,7 @@ class UI(QWidget):
 
     def edit_hidden_values(self):
         self.edit_values_window = QDialog(None, Qt.WindowCloseButtonHint | Qt.WindowTitleHint)
-        self.edit_values_window.setWindowIcon(QIcon("icons/diamond.png"))
+        self.edit_values_window.setWindowIcon(QIcon(resource_path("icons/diamond.png")))
         self.edit_values_window.setWindowTitle("Edit Item Value")
         layout = QGridLayout()
         self.edit_values_window.setLayout(layout)
@@ -1511,7 +1523,7 @@ class UI(QWidget):
             layout = QGridLayout()
             self.export_window.setLayout(layout)
             self.export_window.setWindowTitle("Export List")
-            self.export_window.setWindowIcon(QIcon("icons/export.png"))
+            self.export_window.setWindowIcon(QIcon(resource_path("icons/export.png")))
             self.export_window.setStyleSheet("QDialog {"
                                              "background-color: rgb(225, 235, 240);}"
                                              "QPushButton {"
@@ -1929,7 +1941,7 @@ class UI(QWidget):
                     item_resell_price.setText(str(convert_integer_or_leave_float(edited_item[4])))
 
         self.edit_supply_costs_window = QDialog(None, Qt.WindowCloseButtonHint | Qt.WindowTitleHint)
-        self.edit_supply_costs_window.setWindowIcon(QIcon("icons/edit.png"))
+        self.edit_supply_costs_window.setWindowIcon(QIcon(resource_path("icons/edit.png")))
         layout = QGridLayout()
         self.edit_supply_costs_window.setLayout(layout)
         self.edit_supply_costs_window.setWindowTitle("Edit Supply Materials")
@@ -2079,7 +2091,7 @@ class UI(QWidget):
                         labors_quantity.setText(str(convert_integer_or_leave_float(edited_item[7])))
 
         self.edit_room_window = QDialog(None, Qt.WindowCloseButtonHint | Qt.WindowTitleHint)
-        self.edit_room_window.setWindowIcon(QIcon("icons/edit.png"))
+        self.edit_room_window.setWindowIcon(QIcon(resource_path("icons/edit.png")))
         layout = QGridLayout()
         self.edit_room_window.setLayout(layout)
         self.edit_room_window.setWindowTitle("Edit Room Needs")
