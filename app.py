@@ -7,7 +7,7 @@ import os
 # import PyQt5 and related classes
 from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QLineEdit, QSlider, QGridLayout, QScrollArea, QComboBox,\
     QWidget, QFrame, QHBoxLayout, QVBoxLayout, QFormLayout, QDialog, QFileDialog, QPlainTextEdit, QTableWidget,\
-    QTableWidgetItem
+    QTableWidgetItem, QCheckBox
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QFont
@@ -204,22 +204,22 @@ class UI(QWidget):
             }"""
         )
         self.packs_small_boxes = QLabel()
-        self.packs_small_boxes.setText(f"Small Boxes : 0 ($0)")
+        self.packs_small_boxes.setText(f"Small Boxes: 0 ($0)")
         self.packs_medium_boxes = QLabel()
-        self.packs_medium_boxes.setText(f"Medium Boxes : 0 ($0)")
+        self.packs_medium_boxes.setText(f"Medium Boxes: 0 ($0)")
         self.packs_large_boxes = QLabel()
-        self.packs_large_boxes.setText(f"Large Boxes : 0 ($0)")
+        self.packs_large_boxes.setText(f"Large Boxes: 0 ($0)")
         self.packs_paper_rolls = QLabel()
-        self.packs_paper_rolls.setText(f"Paper Rolls : 0 ($0)")
+        self.packs_paper_rolls.setText(f"Paper Rolls: 0 ($0)")
         self.packs_tape_rolls = QLabel()
-        self.packs_tape_rolls.setText(f"Tape Rolls : 0 ($0)")
+        self.packs_tape_rolls.setText(f"Tape Rolls: 0 ($0)")
         self.packs_labor_hours = QLabel()
-        self.packs_labor_hours.setText(f"Labour Hours : 0 ($0)")
+        self.packs_labor_hours.setText(f"Labour Hours: 0 ($0)")
         self.packs_supply_resale_price = QLabel()
         self.packs_supply_resale_price.setText("Materials Cost: $0")
         self.packs_supply_resale_price.setStyleSheet("font-weight: bold;")
         self.packs_total_packing_cost = QLabel()
-        self.packs_total_packing_cost.setText("Total Packing Cost : $0")
+        self.packs_total_packing_cost.setText("Total Packing Cost: $0")
         self.packs_total_packing_cost.setStyleSheet("font-weight: bold;")
         self.packs_costs_layout.addWidget(self.packs_small_boxes)
         self.packs_costs_layout.addWidget(self.packs_medium_boxes)
@@ -235,6 +235,25 @@ class UI(QWidget):
         self.edit_room_materials_button = QPushButton()
         self.edit_room_materials_button.clicked.connect(self.edit_room_materials)
         self.edit_room_materials_button.setText("Edit Packing Item Room Needs")
+        ###
+        self.packs_slider_frame = QFrame()
+        self.packs_slider_layout = QVBoxLayout()
+        self.packs_slider_frame.setLayout(self.packs_slider_layout)
+        self.packs_slider = QSlider(Qt.Horizontal)
+        self.packs_slider.setRange(1, 5)
+        self.packs_slider.setPageStep(1)
+        self.packs_slider.valueChanged.connect(self.change_packs_slider_label)
+        self.packs_slider.setStyleSheet("QSlider::handle:horizontal {"
+                                  "background-color: rgb(165, 209, 255);"
+                                  "border: 2px solid rgb(128, 179, 255);"
+                                  "border-radius: 5px;}"
+                                  "QSlider::handle:horizontal:hover {"
+                                  "background-color: rgb(128, 179, 255);}")
+        self.packs_slider_label = QLabel()
+        self.packs_slider.setValue(3)
+        self.packs_slider.setMinimumWidth(260)
+        self.packs_slider_layout.addWidget(self.packs_slider, alignment=Qt.AlignBottom)
+        self.packs_slider_layout.addWidget(self.packs_slider_label, alignment=Qt.AlignCenter | Qt.AlignTop)
 
         # Moving UI elements
         self.kitchen_tab = QPushButton()
@@ -532,6 +551,8 @@ class UI(QWidget):
         self.packs_supply_profit_2.setText("Total Supply Materials Profit: $0")
         self.packs_total_packing_cost_2 = QLabel()
         self.packs_total_packing_cost_2.setText("Total Packing Cost: $0")
+        self.packs_mileage_2 = QLabel()
+        self.packs_mileage_2.setText("Mileage: 0")
         self.packs_total_packing_cost_2.setStyleSheet("font-weight: bold;")
         self.staff_costs_layout.addWidget(self.packs_small_boxes_2)
         self.staff_costs_layout.addWidget(self.packs_medium_boxes_2)
@@ -543,6 +564,7 @@ class UI(QWidget):
         self.staff_costs_layout.addWidget(self.packs_supply_profit_2)
         self.staff_costs_layout.addWidget(self.packs_labor_hours_2)
         self.staff_costs_layout.addWidget(self.packs_total_packing_cost_2)
+        self.staff_costs_layout.addWidget(self.packs_mileage_2)
 
         # Summary UI Elements
         self.main_estimate_label_2 = QLabel()
@@ -640,8 +662,9 @@ class UI(QWidget):
         self.packing_layout.setColumnMinimumWidth(0, 30)
         self.packing_layout.setRowMinimumHeight(24, 10)
         self.packing_layout.addWidget(self.packing_scroll_area, 3, 1, 20, 6)
-        self.packing_layout.addWidget(self.packs_costs_frame, 3, 7, 5, 3, alignment=Qt.AlignCenter)
-        self.packing_layout.addWidget(self.calculate_packing_cost_button, 9, 7, 1, 3, alignment=Qt.AlignCenter)
+        self.packing_layout.addWidget(self.packs_slider_frame, 4, 7, 2, 3, alignment=Qt.AlignCenter)
+        self.packing_layout.addWidget(self.packs_costs_frame, 8, 7, 5, 3, alignment=Qt.AlignCenter)
+        self.packing_layout.addWidget(self.calculate_packing_cost_button, 6, 7, 1, 3, alignment=Qt.AlignCenter)
         self.packing_layout.addWidget(self.clear_packing_selections_button, 23, 6, 1, 1, alignment=Qt.AlignRight)
         ###
         self.staff_layout.setRowMinimumHeight(0, 10)
@@ -681,6 +704,9 @@ class UI(QWidget):
         # initial moving and packing costs
         self.moving_cost_total = 0
         self.packing_cost_total = 0
+        self.is_moving_calculated = False
+        self.is_packing_calculated = False
+        self.room_names_and_counts = []
 
         # set font size below
         for label in self.findChildren(QLabel):
@@ -796,8 +822,9 @@ class UI(QWidget):
             self.packing_tab.setStyleSheet("color: black;")
             self.summary_tab.setStyleSheet("color: black;")
             self.staff_tab.setStyleSheet("color: black;")
-            self.see_details_button.hide()
-            self.export_list_button.hide()
+            if not self.is_moving_calculated:
+                self.see_details_button.hide()
+                self.export_list_button.hide()
             self.details_frame.hide()
             self.get_kitchen_tab()
         elif layout == self.packing_layout:
@@ -874,6 +901,19 @@ class UI(QWidget):
             self.slider_label.setText("Medium-High Range Value")
         else:
             self.slider_label.setText("High Range Value")
+    
+    def change_packs_slider_label(self):
+        current_value = self.packs_slider.value()
+        if current_value == 1:
+            self.packs_slider_label.setText("Low Range Value")
+        elif current_value == 2:
+            self.packs_slider_label.setText("Low-Medium Range Value")
+        elif current_value == 3:
+            self.packs_slider_label.setText("Medium Range Value")
+        elif current_value == 4:
+            self.packs_slider_label.setText("Medium-High Range Value")
+        else:
+            self.packs_slider_label.setText("High Range Value")
 
     def add_row(self, widget_layout, name, tab):
         row_frame = QFrame(self)
@@ -1515,120 +1555,150 @@ class UI(QWidget):
     def import_list(self):
         # read imported csv file below
         file_name, _ = QFileDialog.getOpenFileName(self, "Choose File", "", "CSV Files(*.csv)")
-        if file_name:
-            self.clear_selections()
-            f = pandas.read_csv(file_name)
+        if not file_name:
+            return
+        f = pandas.read_csv(file_name)
+        self.clear_selections()
+        self.clear_packing_selections()
+        try:
+            rtd_raw = f['DETAILS'][1]
+            rtd = str(rtd_raw[rtd_raw.index('RTD=')+len('RTD='):rtd_raw.index('):')])
+            fr_raw = f['DETAILS'][3]
+            ft = str(fr_raw[fr_raw.index('FRA=')+len('FRA='):fr_raw.index('):')])
+            ea_raw = f['DETAILS'][8]
+            ea = str(ea_raw[ea_raw.index('EA=')+len('EA='):ea_raw.index('):')])
+            scale_raw = f['DETAILS'][12]
+            scale = int(scale_raw[scale_raw.index('SCALE=')+len('SCALE='):scale_raw.index('):')])
+            packs_scale_raw = f['DETAILS'][15]
             try:
-                rtd_raw = f['DETAILS'][1]
-                rtd = str(rtd_raw[rtd_raw.index('RTD=')+len('RTD='):rtd_raw.index('):')])
-                fr_raw = f['DETAILS'][3]
-                ft = str(fr_raw[fr_raw.index('FRA=')+len('FRA='):fr_raw.index('):')])
-                ea_raw = f['DETAILS'][8]
-                ea = str(ea_raw[ea_raw.index('EA=')+len('EA='):ea_raw.index('):')])
-                scale_raw = f['DETAILS'][12]
-                scale = int(scale_raw[scale_raw.index('SCALE=')+len('SCALE='):scale_raw.index('):')])
-            except ValueError:
-                self.main_estimate_label.setText("Error: Make sure the CSV is in same form as exported one!")
-                return
-            except KeyError:
-                self.main_estimate_label.setText("Error: Make sure headers are 'DETAILS' and 'OUTPUT'!")
-                return
-            self.round_trip_distance.setText(rtd)
-            self.estimator_adjustment.setText(ea)
-            self.ft_riley_adjustment.setCurrentText(ft)
-            self.slider.setValue(scale)
-            no = 16
-            # read items and their numbers from csv file below
-            items = []
-            figure = []
-            invalid_item = False
-            try:
-                while f['DETAILS'][no] != 'NOTE':
+                packs_scale = int(packs_scale_raw[packs_scale_raw.index('SCALE=')+len('SCALE='):packs_scale_raw.index('):')])
+            except:
+                packs_scale = 3
+        except ValueError:
+            self.main_estimate_label.setText("Error: Make sure the CSV is in same form as exported one!")
+            return
+        except KeyError:
+            self.main_estimate_label.setText("Error: Make sure headers are 'DETAILS' and 'OUTPUT'!")
+            return
+        self.round_trip_distance.setText(rtd)
+        self.estimator_adjustment.setText(ea)
+        self.ft_riley_adjustment.setCurrentText(ft)
+        self.slider.setValue(scale)
+        self.packs_slider.setValue(packs_scale)
+        # read items and their numbers from csv file below
+        is_moving = True
+        items = []
+        figure = []
+        packing_items = []
+        packing_figure = []
+        invalid_item = False
+
+        try:
+            no = 18 if f['DETAILS'][16] == 'Total Moving & Packing Price:' else 16
+            while f['DETAILS'][no] != 'NOTE':
+                if is_moving:
+                    if f['DETAILS'][no] == 'ROOM NAMES':
+                        is_moving = False
+                        no += 1
+                        continue
                     items.append(f['DETAILS'][no])
                     figure.append(f['OUTPUT'][no])
-                    no += 1
-            except KeyError:
-                self.main_estimate_label.setText("Error: Make sure headers are 'DETAILS' and 'OUTPUT'!")
-                return
-            while items:
-                for x in self.kitchen_scroll_area.findChildren(QLabel):
-                    if items[0] == x.text():
-                        x.parent().findChildren(QLineEdit)[0].setText(figure[0])
-                        items.pop(0)
-                        figure.pop(0)
-                    if not items:
-                        break
-                if not items:
-                    break
-                for x in self.bedroom_scroll_area.findChildren(QLabel):
-                    if items[0] == x.text():
-                        x.parent().findChildren(QLineEdit)[0].setText(figure[0])
-                        items.pop(0)
-                        figure.pop(0)
-                    if not items:
-                        break
-                if not items:
-                    break
-                for x in self.living_scroll_area.findChildren(QLabel):
-                    if items[0] == x.text():
-                        x.parent().findChildren(QLineEdit)[0].setText(figure[0])
-                        items.pop(0)
-                        figure.pop(0)
-                    if not items:
-                        break
-                if not items:
-                    break
-                for x in self.outside_scroll_area.findChildren(QLabel):
-                    if items[0] == x.text():
-                        x.parent().findChildren(QLineEdit)[0].setText(figure[0])
-                        items.pop(0)
-                        figure.pop(0)
-                    if not items:
-                        break
-                if not items:
-                    break
-                for x in self.office_scroll_area.findChildren(QLabel):
-                    if items[0] == x.text():
-                        x.parent().findChildren(QLineEdit)[0].setText(figure[0])
-                        items.pop(0)
-                        figure.pop(0)
-                    if not items:
-                        break
-                if not items:
-                    break
-                for x in self.boxes_scroll_area.findChildren(QLabel):
-                    if items[0] == x.text():
-                        x.parent().findChildren(QLineEdit)[0].setText(figure[0])
-                        items.pop(0)
-                        figure.pop(0)
-                    if not items:
-                        break
-                if items:
-                    invalid_item = True
+                else:
+                    packing_items.append(f['DETAILS'][no])
+                    packing_figure.append(f['OUTPUT'][no])
+                no += 1
+        except KeyError:
+            self.main_estimate_label.setText("Error: Make sure headers are 'DETAILS' and 'OUTPUT'!")
+            return
+
+        while items:
+            for x in self.kitchen_scroll_area.findChildren(QLabel):
+                if items[0] == x.text():
+                    x.parent().findChildren(QLineEdit)[0].setText(figure[0])
                     items.pop(0)
                     figure.pop(0)
-                else:
+                if not items:
                     break
-            if invalid_item:
-                self.main_estimate_label.setText("Some items couldn't be imported.")
+            if not items:
+                break
+            for x in self.bedroom_scroll_area.findChildren(QLabel):
+                if items[0] == x.text():
+                    x.parent().findChildren(QLineEdit)[0].setText(figure[0])
+                    items.pop(0)
+                    figure.pop(0)
+                if not items:
+                    break
+            if not items:
+                break
+            for x in self.living_scroll_area.findChildren(QLabel):
+                if items[0] == x.text():
+                    x.parent().findChildren(QLineEdit)[0].setText(figure[0])
+                    items.pop(0)
+                    figure.pop(0)
+                if not items:
+                    break
+            if not items:
+                break
+            for x in self.outside_scroll_area.findChildren(QLabel):
+                if items[0] == x.text():
+                    x.parent().findChildren(QLineEdit)[0].setText(figure[0])
+                    items.pop(0)
+                    figure.pop(0)
+                if not items:
+                    break
+            if not items:
+                break
+            for x in self.office_scroll_area.findChildren(QLabel):
+                if items[0] == x.text():
+                    x.parent().findChildren(QLineEdit)[0].setText(figure[0])
+                    items.pop(0)
+                    figure.pop(0)
+                if not items:
+                    break
+            if not items:
+                break
+            for x in self.boxes_scroll_area.findChildren(QLabel):
+                if items[0] == x.text():
+                    x.parent().findChildren(QLineEdit)[0].setText(figure[0])
+                    items.pop(0)
+                    figure.pop(0)
+                if not items:
+                    break
+            if items:
+                invalid_item = True
+                items.pop(0)
+                figure.pop(0)
             else:
-                self.main_estimate_label.setText("")
-            self.load_only_estimate_label.setText("")
-            self.unload_only_estimate_label.setText("")
-            self.see_details_button.hide()
-            self.details_frame.hide()
-            self.export_list_button.hide()
-            note_count = 0
-            for z in f['DETAILS']:
-                if z == 'NOTE':
-                    try:
-                        self.import_note = str(f['DETAILS'][note_count + 1])
-                        break
-                    except KeyError:
-                        self.import_note = ''
-                        break
-                else:
-                    note_count += 1
+                break
+        if invalid_item:
+            self.main_estimate_label.setText("Some items couldn't be imported.")
+        else:
+            self.main_estimate_label.setText("")
+        self.load_only_estimate_label.setText("")
+        self.unload_only_estimate_label.setText("")
+        self.see_details_button.hide()
+        self.details_frame.hide()
+        self.export_list_button.hide()
+
+        for index, item in enumerate(packing_items):
+            for x in self.packing_scroll_area.findChildren(QLabel):
+                if item == x.text():
+                    x.parent().findChildren(QLineEdit)[0].setText(packing_figure[index][0])
+
+        note_count = 0
+        for z in f['DETAILS']:
+            if z == 'NOTE':
+                try:
+                    self.import_note = str(f['DETAILS'][note_count + 1])
+                    break
+                except KeyError:
+                    self.import_note = ''
+                    break
+            else:
+                note_count += 1
+        
+        self.calculate_estimate()
+        self.calculate_packing_cost()
 
     def clear_selections(self):
         for item in self.kitchen_widget.findChildren(QLineEdit):
@@ -1643,10 +1713,12 @@ class UI(QWidget):
             item.setText("0")
         for item in self.office_widget.findChildren(QLineEdit):
             item.setText("0")
+        self.is_moving_calculated = False
 
     def clear_packing_selections(self):
         for item in self.packing_widget.findChildren(QLineEdit):
             item.setText("0")
+        self.is_packing_calculated = False
 
     def calculate_estimate(self):
 
@@ -1734,27 +1806,33 @@ class UI(QWidget):
             export_widget_layout = QGridLayout()
             export_widget.setLayout(export_widget_layout)
             text_area = QPlainTextEdit()
-            text_area.setPlaceholderText("Add your note if you wish")
+            text_area.setPlaceholderText("Add your note")
             if self.import_note != '':
                 text_area.setPlainText(self.import_note)
+            include_packing = QCheckBox()
+            include_packing.setText("Include Packing")
+            include_packing.setChecked(True)
             export_button = QPushButton()
             export_button.setText("Export")
             export_button.clicked.connect(lambda: export_to_excel(items, base, distance, long_distance, fort_riley,
                                                                   second_truck, small, med, large,
                                                                   estimator, adjust, final, scale, unload, load,
-                                                                  text_area.toPlainText(), self.export_window, inputs))
+                                                                  text_area.toPlainText(), include_packing.isChecked(), self.export_window, inputs))
             error_note = QLabel()
             export_widget_layout.addWidget(text_area, 0, 0, 1, 1)
-            export_widget_layout.addWidget(export_button, 1, 0, 1, 1, alignment=Qt.AlignCenter)
-            export_widget_layout.addWidget(error_note, 2, 0, 1, 1, alignment=Qt.AlignCenter)
+            export_widget_layout.addWidget(include_packing, 1, 0, 1, 1)
+            export_widget_layout.addWidget(export_button, 2, 0, 1, 1, alignment=Qt.AlignCenter)
+            export_widget_layout.addWidget(error_note, 3, 0, 1, 1, alignment=Qt.AlignCenter)
             for item in self.export_window.findChildren(QPushButton):
                 item.setFont(QFont('Times', 9))
             for item in self.export_window.findChildren(QPlainTextEdit):
                 item.setFont(QFont('Times', 9))
+            for item in self.export_window.findChildren(QCheckBox):
+                item.setFont(QFont('Times', 9))
             self.export_window.show()
 
         def export_to_excel(items, base, distance, long_distance, fort_riley, second_truck, small, med, large,
-                            estimator, adjust, final, scale, unload, load, note, window, inputs):
+                            estimator, adjust, final, scale, unload, load, note, include_packing, window, inputs):
             sum = base + distance + long_distance + fort_riley + second_truck + small + med + large + estimator
             file_name, _ = QFileDialog.getSaveFileName(self, "Save File", "", "CSV Files(*.csv)")
             if file_name:
@@ -1792,11 +1870,21 @@ class UI(QWidget):
                 writer.writerow([f'Total Estimate (SCALE={inputs[3]}):', f'${"{:.2f}".format(final)}'])
                 writer.writerow(['Unload Only Estimate:', f'${"{:.2f}".format(unload)}'])
                 writer.writerow(['Load Only Estimate:', f'${"{:.2f}".format(load)}'])
+                if include_packing:
+                    writer.writerow([f'Packing Price (SCALE={self.packs_slider.value()}):', f"${round(self.packing_cost_total, 2)}"])
+                    writer.writerow(['Total Moving & Packing Price:', f"${round(self.packing_cost_total + self.moving_cost_total, 2)}"])
                 writer.writerow('')
                 writer.writerow(['ITEM NAMES', 'NUMBER'])
                 for j in range(len(items)):
                     writer.writerow(items[j])
                 writer.writerow('')
+
+                if include_packing:
+                    writer.writerow(['ROOM NAMES', 'NUMBER'])
+                    for k in range(len(self.room_names_and_counts)):
+                        writer.writerow(self.room_names_and_counts[k])    
+                    writer.writerow('')
+
                 writer.writerow(['NOTE'])
                 if note:
                     writer.writerow([note])
@@ -2015,8 +2103,12 @@ class UI(QWidget):
             if not number_list[i] == '0':
                 summary_moving_items_text += f"{item_list[i]} x{number_list[i]}\n"
         self.summary_moving_items_label.setText(summary_moving_items_text)
+        self.is_moving_calculated = True
+        self.packs_mileage_2.setText(f"Mileage: {self.round_trip_distance.text()}")
 
     def calculate_packing_cost(self):
+        # refresh room names and counts first
+        self.room_names_and_counts = []
         # get latest rooms below
         conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
@@ -2025,7 +2117,15 @@ class UI(QWidget):
 
         cursor.execute('''SELECT * FROM supplies ORDER BY id ASC''')
         self.all_supplies = cursor.fetchall()
+
+        cursor.execute('''SELECT formula_name, formula_numbers FROM formulas''')
+        self.all_formulas = cursor.fetchall()
         conn.close()
+
+        low = float(self.all_formulas[10][1])
+        low_mid = float((low + 1) / 2)
+        high = float(self.all_formulas[11][1])
+        high_mid = float((high + 1) / 2)
 
         item_list = []
         number_list = []
@@ -2064,10 +2164,24 @@ class UI(QWidget):
                 labor_count += int(item) * room[7]
 
                 summary_packing_rooms_text += f"{room_name} x{item}\n"
+                self.room_names_and_counts.append([room_name, item])
 
         self.summary_packing_rooms_label.setText(summary_packing_rooms_text)
         
         all_materials_count = small_box_count + medium_box_count + large_box_count + paper_roll_count + tape_roll_count
+
+        slider_value = self.packs_slider.value()
+        adjust_scale = 1
+        if slider_value == 1:
+            adjust_scale = low
+        elif slider_value == 2:
+            adjust_scale = low_mid
+        elif slider_value == 3:
+            adjust_scale = 1
+        elif slider_value == 4:
+            adjust_scale = high_mid
+        elif slider_value == 5:
+            adjust_scale = high
         
         # multiply all counts with order_price
         small_box_cost = small_box_count * self.all_supplies[0][3]
@@ -2075,11 +2189,12 @@ class UI(QWidget):
         large_box_cost = large_box_count * self.all_supplies[2][3]
         paper_roll_cost = paper_roll_count * self.all_supplies[3][3]
         tape_roll_cost = tape_roll_count * self.all_supplies[4][3]
-        small_box_resell_price = small_box_count * self.all_supplies[0][4]
-        medium_box_resell_price = medium_box_count * self.all_supplies[1][4]
-        large_box_resell_price = large_box_count * self.all_supplies[2][4]
-        paper_roll_resell_price = paper_roll_count * self.all_supplies[3][4]
-        tape_roll_resell_price = tape_roll_count * self.all_supplies[4][4]
+
+        small_box_resell_price = small_box_count * self.all_supplies[0][4] * adjust_scale
+        medium_box_resell_price = medium_box_count * self.all_supplies[1][4] * adjust_scale
+        large_box_resell_price = large_box_count * self.all_supplies[2][4] * adjust_scale
+        paper_roll_resell_price = paper_roll_count * self.all_supplies[3][4] * adjust_scale
+        tape_roll_resell_price = tape_roll_count * self.all_supplies[4][4] * adjust_scale
         
         total_supply_cost = (
             small_box_cost +
@@ -2096,7 +2211,7 @@ class UI(QWidget):
             tape_roll_resell_price
         )
 
-        labor_cost = labor_count * self.all_supplies[8][3]
+        labor_cost = labor_count * self.all_supplies[8][3] * adjust_scale
         total_packing_cost = total_packing_cost_without_labor + labor_cost
 
         # set new calculated numbers
@@ -2160,6 +2275,8 @@ class UI(QWidget):
         self.packing_cost_label_2.setText(f"Packing Materials Cost: ${round(total_packing_cost_without_labor, 2) if is_float_not_integer(total_packing_cost_without_labor) else int(total_packing_cost_without_labor)}")
         self.packing_total_label_2.setText(f"Packing Total Cost: ${round(total_packing_cost, 2) if is_float_not_integer(total_packing_cost) else int(total_packing_cost)}")
         self.moving_and_packing_total_cost.setText(f"Moving & Packing Total Cost: ${round(self.packing_cost_total + self.moving_cost_total, 2)}")
+
+        self.is_packing_calculated = True
 
     def edit_supply_costs(self):
         def change_edited_supply():
