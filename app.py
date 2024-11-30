@@ -6,7 +6,8 @@ import os
 
 # import PyQt5 and related classes
 from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QLineEdit, QSlider, QGridLayout, QScrollArea, QComboBox,\
-    QWidget, QFrame, QHBoxLayout, QVBoxLayout, QFormLayout, QDialog, QFileDialog, QPlainTextEdit, QTableWidget, QTableWidgetItem
+    QWidget, QFrame, QHBoxLayout, QVBoxLayout, QFormLayout, QDialog, QFileDialog, QPlainTextEdit, QTableWidget,\
+    QTableWidgetItem
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QFont
@@ -114,6 +115,16 @@ calculate_button_stylesheet = """
         background-color: rgb(255, 128, 0);
     }
 """
+frame_stylesheet = """
+    QFrame {
+        border: 2px solid rgb(128, 179, 255);
+        border-radius: 5px;
+        margin-right: 10px;
+    }
+    QLabel {
+        border:none;
+    }
+"""
 
 # custom validator for only numeric input
 qDoubleValidator = QDoubleValidator()
@@ -138,6 +149,10 @@ class UI(QWidget):
         self.moving_layout.setContentsMargins(0, 0, 0, 0)
         self.packing_layout = QGridLayout()
         self.packing_layout.setContentsMargins(0, 0, 0, 0)
+        self.summary_layout = QGridLayout()
+        self.summary_layout.setContentsMargins(0, 0, 0, 0)
+        self.staff_layout = QGridLayout()
+        self.staff_layout.setContentsMargins(0, 0, 0, 0)
 
         self.main_layout = QGridLayout()
         self.main_layout.setContentsMargins(0, 10, 0, 0)
@@ -145,17 +160,81 @@ class UI(QWidget):
         self.setStyleSheet(main_layout_stylesheet)
         self.main_layout.addLayout(self.moving_layout, 1, 0, 24, 10)
         self.main_layout.addLayout(self.packing_layout, 1, 0, 24, 10)
+        self.main_layout.addLayout(self.summary_layout, 1, 0, 24, 10)
+        self.main_layout.addLayout(self.staff_layout, 1, 0, 24, 10)
 
         # fixed values
         self.integer_only = QIntValidator()
 
         # Main layout UI elements
         self.moving_tab = QPushButton()
-        self.moving_tab.clicked.connect(lambda: self.show_and_hide_layout(self.moving_layout, self.packing_layout, True))
+        self.moving_tab.clicked.connect(lambda: self.show_and_hide_layout(self.moving_layout))
         self.moving_tab.setText("MOVING")
         self.packing_tab = QPushButton()
-        self.packing_tab.clicked.connect(lambda: self.show_and_hide_layout(self.packing_layout, self.moving_layout))
+        self.packing_tab.clicked.connect(lambda: self.show_and_hide_layout(self.packing_layout))
         self.packing_tab.setText("PACKING")
+        self.summary_tab = QPushButton()
+        self.summary_tab.clicked.connect(lambda: self.show_and_hide_layout(self.summary_layout))
+        self.summary_tab.setText("SUMMARY")
+        self.staff_tab = QPushButton()
+        self.staff_tab.clicked.connect(lambda: self.show_and_hide_layout(self.staff_layout))
+        self.staff_tab.setText("STAFF")
+
+        # Packing UI elements
+        self.clear_packing_selections_button = QPushButton()
+        self.clear_packing_selections_button.clicked.connect(self.clear_packing_selections)
+        self.clear_packing_selections_button.setText("Clear")
+        self.calculate_packing_cost_button = QPushButton()
+        self.calculate_packing_cost_button.clicked.connect(self.calculate_packing_cost)
+        self.calculate_packing_cost_button.setText("Calculate")
+        self.calculate_packing_cost_button.setStyleSheet(calculate_button_stylesheet)
+        ###
+        self.packs_costs_frame = QFrame()
+        self.packs_costs_layout = QFormLayout()
+        self.packs_costs_frame.setLayout(self.packs_costs_layout)
+        self.packs_costs_frame.setMinimumWidth(300)
+        self.packs_costs_frame.setStyleSheet("""
+            QFrame {
+                border: 2px solid rgb(128, 179, 255);
+                border-radius: 5px;
+                margin-right: 10px;
+            }
+            QLabel {
+                border:none;
+            }"""
+        )
+        self.packs_small_boxes = QLabel()
+        self.packs_small_boxes.setText(f"Small Boxes : 0 ($0)")
+        self.packs_medium_boxes = QLabel()
+        self.packs_medium_boxes.setText(f"Medium Boxes : 0 ($0)")
+        self.packs_large_boxes = QLabel()
+        self.packs_large_boxes.setText(f"Large Boxes : 0 ($0)")
+        self.packs_paper_rolls = QLabel()
+        self.packs_paper_rolls.setText(f"Paper Rolls : 0 ($0)")
+        self.packs_tape_rolls = QLabel()
+        self.packs_tape_rolls.setText(f"Tape Rolls : 0 ($0)")
+        self.packs_labor_hours = QLabel()
+        self.packs_labor_hours.setText(f"Labour Hours : 0 ($0)")
+        self.packs_supply_resale_price = QLabel()
+        self.packs_supply_resale_price.setText("Materials Cost: $0")
+        self.packs_supply_resale_price.setStyleSheet("font-weight: bold;")
+        self.packs_total_packing_cost = QLabel()
+        self.packs_total_packing_cost.setText("Total Packing Cost : $0")
+        self.packs_total_packing_cost.setStyleSheet("font-weight: bold;")
+        self.packs_costs_layout.addWidget(self.packs_small_boxes)
+        self.packs_costs_layout.addWidget(self.packs_medium_boxes)
+        self.packs_costs_layout.addWidget(self.packs_large_boxes)
+        self.packs_costs_layout.addWidget(self.packs_paper_rolls)
+        self.packs_costs_layout.addWidget(self.packs_tape_rolls)
+        self.packs_costs_layout.addWidget(self.packs_supply_resale_price)
+        self.packs_costs_layout.addWidget(self.packs_labor_hours)
+        self.packs_costs_layout.addWidget(self.packs_total_packing_cost)
+        self.edit_supplies_button = QPushButton()
+        self.edit_supplies_button.clicked.connect(self.edit_supply_costs)
+        self.edit_supplies_button.setText("Edit Packing Item Supply Materials")
+        self.edit_room_materials_button = QPushButton()
+        self.edit_room_materials_button.clicked.connect(self.edit_room_materials)
+        self.edit_room_materials_button.setText("Edit Packing Item Room Needs")
 
         # Moving UI elements
         self.kitchen_tab = QPushButton()
@@ -176,91 +255,6 @@ class UI(QWidget):
         self.boxes_tab = QPushButton()
         self.boxes_tab.clicked.connect(self.get_boxes_tab)
         self.boxes_tab.setText("Boxes")
-
-        # Packing UI elements
-        self.table_widget = QTableWidget()
-        self.table_widget.setRowCount(5)
-        self.table_widget.setColumnCount(5)
-        self.table_widget.setHorizontalHeaderLabels(['', 'Quantity', 'Supply Cost', 'Resell Price', 'Profit'])
-        self.table_widget.setItem(0, 0, QTableWidgetItem("  Small Boxes"))
-        self.table_widget.setItem(1, 0, QTableWidgetItem("  Medium Boxes"))
-        self.table_widget.setItem(2, 0, QTableWidgetItem("  Large Boxes"))
-        self.table_widget.setItem(3, 0, QTableWidgetItem("  Paper Rolls"))
-        self.table_widget.setItem(4, 0, QTableWidgetItem("  Tape Rolls"))
-        self.table_widget.setColumnWidth(0, 127)
-        self.table_widget.setColumnWidth(1, 90)
-        self.table_widget.setColumnWidth(2, 90)
-        self.table_widget.setColumnWidth(3, 90)
-        self.table_widget.setColumnWidth(4, 90)
-        self.table_widget.setRowHeight(0, 50)
-        self.table_widget.setRowHeight(1, 50)
-        self.table_widget.setRowHeight(2, 50)
-        self.table_widget.setRowHeight(3, 50)
-        self.table_widget.setRowHeight(4, 50)
-        # table settings
-        self.table_widget.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.table_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.table_widget.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.table_widget.verticalHeader().setVisible(False)
-        self.table_widget.setSelectionBehavior(QTableWidget.SelectItems)
-        self.table_widget.setSelectionMode(QTableWidget.NoSelection)
-        self.table_widget.setMinimumWidth(500)
-        self.table_widget.setMinimumHeight(277)
-        self.table_widget.setStyleSheet("""
-            QTableWidget {
-                border: 2px solid rgb(128, 179, 255);
-                border-radius: 5px;
-                margin-right: 10px;
-            }
-            QLabel {
-                border:none;
-            }"""
-        )
-
-        self.clear_packing_selections_button = QPushButton()
-        self.clear_packing_selections_button.clicked.connect(self.clear_packing_selections)
-        self.clear_packing_selections_button.setText("Clear")
-        self.calculate_packing_cost_button = QPushButton()
-        self.calculate_packing_cost_button.clicked.connect(self.calculate_packing_cost)
-        self.calculate_packing_cost_button.setText("Calculate")
-        self.calculate_packing_cost_button.setStyleSheet(calculate_button_stylesheet)
-        ###
-        self.packs_costs_frame = QFrame()
-        self.packs_costs_layout = QFormLayout()
-        self.packs_costs_frame.setLayout(self.packs_costs_layout)
-        self.packs_costs_frame.setFixedWidth(500)
-        self.packs_costs_frame.setStyleSheet("""
-            QFrame {
-                border: 2px solid rgb(128, 179, 255);
-                border-radius: 5px;
-                margin-right: 10px;
-            }
-            QLabel {
-                border:none;
-            }"""
-        )
-        self.packs_labor_hours = QLabel()
-        self.packs_labor_hours.setText(f"Labour Hours : 0 ($0)")
-        self.packs_supply_cost = QLabel()
-        self.packs_supply_cost.setText("Total Supply Cost: $0")
-        self.packs_supply_resale_price = QLabel()
-        self.packs_supply_resale_price.setText("Total Supply Resell Price: $0")
-        self.packs_supply_profit = QLabel()
-        self.packs_supply_profit.setText("Total Supply Materials Profit: $0")
-        self.packs_total_packing_cost = QLabel()
-        self.packs_total_packing_cost.setText("Total Packing Cost : $0")
-        self.packs_costs_layout.addWidget(self.packs_labor_hours)
-        self.packs_costs_layout.addWidget(self.packs_supply_cost)
-        self.packs_costs_layout.addWidget(self.packs_supply_resale_price)
-        self.packs_costs_layout.addWidget(self.packs_supply_profit)
-        self.packs_costs_layout.addWidget(self.packs_total_packing_cost)
-        self.edit_supplies_button = QPushButton()
-        self.edit_supplies_button.clicked.connect(self.edit_supply_costs)
-        self.edit_supplies_button.setText("Edit Supply Materials")
-        self.edit_room_materials_button = QPushButton()
-        self.edit_room_materials_button.clicked.connect(self.edit_room_materials)
-        self.edit_room_materials_button.setText("Edit Room Needs")
-
         # UI scroll area and scroll bars
         self.kitchen_scroll_area = QScrollArea()
         self.kitchen_widget = QWidget()
@@ -290,7 +284,6 @@ class UI(QWidget):
         self.packing_widget = QWidget()
         self.packing_widget_layout = QFormLayout()
         self.set_scroll_area_settings(self.packing_scroll_area, self.packing_widget, self.packing_widget_layout)
-
         # all tabs as dictionary
         self.ALL_TABS = {
             "kitchen": {
@@ -324,24 +317,22 @@ class UI(QWidget):
                 "widget": self.boxes_widget
             },
         }
-
         # Buttons and other settings
         self.clear_selections_button = QPushButton()
         self.clear_selections_button.clicked.connect(self.clear_selections)
         self.clear_selections_button.setText("Clear")
         self.edit_items_button = QPushButton()
         self.edit_items_button.clicked.connect(self.edit_items)
-        self.edit_items_button.setText("Edit Items")
+        self.edit_items_button.setText("Edit Moving Items")
         self.edit_formulas_button = QPushButton()
         self.edit_formulas_button.clicked.connect(self.edit_formulas)
-        self.edit_formulas_button.setText("Edit Formulas")
+        self.edit_formulas_button.setText("Edit Moving Formulas")
         self.edit_value_multiplier_button = QPushButton()
         self.edit_value_multiplier_button.clicked.connect(self.edit_hidden_values)
-        self.edit_value_multiplier_button.setText(" Edit Item Value ")
+        self.edit_value_multiplier_button.setText(" Edit Moving Item Value ")
         self.import_button = QPushButton()
         self.import_button.setText("Import")
         self.import_button.clicked.connect(self.import_list)
-
         #####
         self.round_trip_distance_label = QLabel()
         self.round_trip_distance_label.setText("Round Trip Distance:")
@@ -400,6 +391,7 @@ class UI(QWidget):
                                               "border-radius: 5px;"
                                               "padding: 2px 5px;}"
                                               "QPushButton::hover {background-color: rgb(255, 128, 0);}")
+        self.see_details_button.hide()
         self.export_list_button = QPushButton()
         self.export_list_button.setText("Export")
         self.export_list_button.setStyleSheet("QPushButton {background-color: rgb(255, 179, 102);"
@@ -407,6 +399,7 @@ class UI(QWidget):
                                               "border-radius: 5px;"
                                               "padding: 2px 5px;}"
                                               "QPushButton::hover {background-color: rgb(255, 128, 0);}")
+        self.export_list_button.hide()
         self.details_frame = QFrame()
         self.details_layout = QFormLayout()
         self.details_frame.setLayout(self.details_layout)
@@ -445,7 +438,167 @@ class UI(QWidget):
         self.details_layout.addWidget(self.details_12)
         self.details_frame.hide()
 
+        # Staff UI Elements
+        self.staff_secret_key_label = QLabel()
+        self.staff_secret_key_label.setText("Enter secret key to access this tab")
+        self.staff_secret_key_label.setFixedWidth(200)
+        self.staff_secret_key_line = QLineEdit()
+        self.staff_secret_key_line.setStyleSheet("border: 1px solid rgb(128, 179, 255);"
+                                               "border-radius: 3px;"
+                                               "background-color: rgb(250, 250, 250);")
+        self.staff_secret_key_line.setFixedWidth(200)
+        self.staff_secret_key_line.setEchoMode(QLineEdit.Password)
+        self.staff_secret_key_button = QPushButton()
+        self.staff_secret_key_button.setText("Access")
+        self.staff_secret_key_button.setStyleSheet(calculate_button_stylesheet)
+        self.staff_secret_key_button.setFixedWidth(100)
+        self.staff_secret_key_button.clicked.connect(self.grant_access_to_staff)
+        self.staff_wrong_secret_key_label = QLabel()
+        self.staff_wrong_secret_key_label.setText("")
+        self.staff_wrong_secret_key_label.setFixedWidth(200)
+        self.staff_table_widget = QTableWidget()
+        self.staff_table_widget.setRowCount(6)
+        self.staff_table_widget.setColumnCount(5)
+        self.staff_table_widget.setHorizontalHeaderLabels(['', 'Quantity', 'Supply Cost', 'Resell Price', 'Profit'])
+        self.staff_table_widget.setItem(0, 0, QTableWidgetItem("  Small Boxes"))
+        self.staff_table_widget.setItem(1, 0, QTableWidgetItem("  Medium Boxes"))
+        self.staff_table_widget.setItem(2, 0, QTableWidgetItem("  Large Boxes"))
+        self.staff_table_widget.setItem(3, 0, QTableWidgetItem("  Paper Rolls"))
+        self.staff_table_widget.setItem(4, 0, QTableWidgetItem("  Tape Rolls"))
+        self.staff_table_widget.setItem(5, 0, QTableWidgetItem("  Total"))
+        self.staff_table_widget.setColumnWidth(0, 127)
+        self.staff_table_widget.setColumnWidth(1, 90)
+        self.staff_table_widget.setColumnWidth(2, 90)
+        self.staff_table_widget.setColumnWidth(3, 90)
+        self.staff_table_widget.setColumnWidth(4, 90)
+        self.staff_table_widget.setRowHeight(0, 50)
+        self.staff_table_widget.setRowHeight(1, 50)
+        self.staff_table_widget.setRowHeight(2, 50)
+        self.staff_table_widget.setRowHeight(3, 50)
+        self.staff_table_widget.setRowHeight(4, 50)
+        self.staff_table_widget.setRowHeight(5, 50)
+        # table settings
+        self.staff_table_widget.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.staff_table_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.staff_table_widget.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.staff_table_widget.verticalHeader().setVisible(False)
+        self.staff_table_widget.setSelectionBehavior(QTableWidget.SelectItems)
+        self.staff_table_widget.setSelectionMode(QTableWidget.NoSelection)
+        self.staff_table_widget.setFixedWidth(500)
+        self.staff_table_widget.setMinimumHeight(327)
+        self.staff_table_widget.setStyleSheet("""
+            QTableWidget {
+                border: 2px solid rgb(128, 179, 255);
+                border-radius: 5px;
+                margin-right: 10px;
+            }
+            QLabel {
+                border:none;
+            }"""
+        )
+        ###
+        self.staff_costs_frame = QFrame()
+        self.staff_costs_layout = QFormLayout()
+        self.staff_costs_frame.setLayout(self.staff_costs_layout)
+        self.staff_costs_frame.setFixedWidth(500)
+        self.staff_costs_frame.setStyleSheet("""
+            QFrame {
+                border: 2px solid rgb(128, 179, 255);
+                border-radius: 5px;
+                margin-right: 10px;
+            }
+            QLabel {
+                border:none;
+            }"""
+        )
+        self.packs_small_boxes_2 = QLabel()
+        self.packs_small_boxes_2.setText(f"Small Boxes: 0 ($0)")
+        self.packs_medium_boxes_2 = QLabel()
+        self.packs_medium_boxes_2.setText(f"Medium Boxes: 0 ($0)")
+        self.packs_large_boxes_2 = QLabel()
+        self.packs_large_boxes_2.setText(f"Large Boxes: 0 ($0)")
+        self.packs_paper_rolls_2 = QLabel()
+        self.packs_paper_rolls_2.setText(f"Paper Rolls: 0 ($0)")
+        self.packs_tape_rolls_2 = QLabel()
+        self.packs_tape_rolls_2.setText(f"Tape Rolls: 0 ($0)")
+        self.packs_labor_hours_2 = QLabel()
+        self.packs_labor_hours_2.setText(f"Labour Hours: 0 ($0)")
+        self.packs_supply_cost_2 = QLabel()
+        self.packs_supply_cost_2.setText("Total Supply Cost: $0")
+        self.packs_supply_cost_2.setStyleSheet("font-weight: bold;")
+        self.packs_supply_resale_price_2 = QLabel()
+        self.packs_supply_resale_price_2.setText("Total Supply Resell Price: $0")
+        self.packs_supply_profit_2 = QLabel()
+        self.packs_supply_profit_2.setText("Total Supply Materials Profit: $0")
+        self.packs_total_packing_cost_2 = QLabel()
+        self.packs_total_packing_cost_2.setText("Total Packing Cost: $0")
+        self.packs_total_packing_cost_2.setStyleSheet("font-weight: bold;")
+        self.staff_costs_layout.addWidget(self.packs_small_boxes_2)
+        self.staff_costs_layout.addWidget(self.packs_medium_boxes_2)
+        self.staff_costs_layout.addWidget(self.packs_large_boxes_2)
+        self.staff_costs_layout.addWidget(self.packs_paper_rolls_2)
+        self.staff_costs_layout.addWidget(self.packs_tape_rolls_2)
+        self.staff_costs_layout.addWidget(self.packs_supply_cost_2)
+        self.staff_costs_layout.addWidget(self.packs_supply_resale_price_2)
+        self.staff_costs_layout.addWidget(self.packs_supply_profit_2)
+        self.staff_costs_layout.addWidget(self.packs_labor_hours_2)
+        self.staff_costs_layout.addWidget(self.packs_total_packing_cost_2)
+
+        # Summary UI Elements
+        self.main_estimate_label_2 = QLabel()
+        self.main_estimate_label_2.setText(f"Moving Estimate: $0")
+        self.unload_only_estimate_label_2 = QLabel()
+        self.unload_only_estimate_label_2.setText(f"Unload Only Moving Estimate: $0)")
+        self.load_only_estimate_label_2 = QLabel()
+        self.load_only_estimate_label_2.setText(f"Load Only Moving Estimate: 0 ($0)")
+        self.packing_cost_label_2 = QLabel()
+        self.packing_cost_label_2.setText(f"Packing Materials Cost: $0")
+        self.packing_total_label_2 = QLabel()
+        self.packing_total_label_2.setText(f"Packing Total Cost: $0")
+        self.moving_and_packing_total_cost = QLabel()
+        self.moving_and_packing_total_cost.setText(f"Moving & Packing Total Cost: $0")
+        self.summary_moving_frame = QFrame()
+        self.summary_moving_layout = QFormLayout()
+        self.summary_moving_frame.setLayout(self.summary_moving_layout)
+        self.summary_moving_frame.setStyleSheet(frame_stylesheet)
+        self.summary_moving_frame.setMinimumWidth(300)
+        self.summary_moving_layout.addWidget(self.main_estimate_label_2)
+        self.summary_moving_layout.addWidget(self.unload_only_estimate_label_2)
+        self.summary_moving_layout.addWidget(self.load_only_estimate_label_2)
+        self.summary_moving_layout.addWidget(self.packing_cost_label_2)
+        self.summary_moving_layout.addWidget(self.packing_total_label_2)
+        self.summary_moving_layout.addWidget(self.moving_and_packing_total_cost)
+        #
+        self.summary_moving_items_frame_scroll_area = QScrollArea()
+        self.summary_moving_items_frame = QWidget()
+        self.summary_moving_items_layout = QFormLayout()
+        self.summary_moving_items_frame_scroll_area.setMinimumWidth(350)
+        self.summary_moving_items_frame_scroll_area.setMaximumHeight(450)
+        self.summary_moving_items_label = QLabel()
+        self.summary_moving_items_label.setText("Items to Move:")
+        self.summary_moving_items_layout.addWidget(self.summary_moving_items_label)
+        self.set_scroll_area_settings(self.summary_moving_items_frame_scroll_area, self.summary_moving_items_frame, self.summary_moving_items_layout)
+        #
+        self.summary_packing_rooms_frame_scroll_area = QScrollArea()
+        self.summary_packing_rooms_frame = QWidget()
+        self.summary_packing_rooms_layout = QFormLayout()
+        self.summary_packing_rooms_frame_scroll_area.setMinimumWidth(350)
+        self.summary_packing_rooms_frame_scroll_area.setMaximumHeight(450)
+        self.summary_packing_rooms_label = QLabel()
+        self.summary_packing_rooms_label.setText("Rooms to Pack:")
+        self.summary_packing_rooms_layout.addWidget(self.summary_packing_rooms_label)
+        self.set_scroll_area_settings(self.summary_packing_rooms_frame_scroll_area, self.summary_packing_rooms_frame, self.summary_packing_rooms_layout)
+
+
         # we place defined UI elements to the GUI below
+        self.main_layout.addWidget(self.moving_tab, 0, 3, 1, 1)
+        self.main_layout.addWidget(self.packing_tab, 0, 4, 1, 1)
+        self.main_layout.addWidget(self.summary_tab, 0, 5, 1, 1)
+        self.main_layout.addWidget(self.staff_tab, 0, 6, 1, 1)
+        self.main_layout.setRowMinimumHeight(0, 10)
+        self.main_layout.setColumnMinimumWidth(0, 30)
+        self.main_layout.setRowMinimumHeight(24, 10)
+        ###
         self.moving_layout.setRowMinimumHeight(0, 10)
         self.moving_layout.setColumnMinimumWidth(0, 30)
         self.moving_layout.setColumnMinimumWidth(7, 30)
@@ -454,13 +607,6 @@ class UI(QWidget):
         self.moving_layout.setColumnMinimumWidth(8, 80)
         self.moving_layout.setColumnMinimumWidth(9, 80)
         self.moving_layout.setColumnMinimumWidth(10, 80)
-
-        self.main_layout.addWidget(self.moving_tab, 0, 4, 1, 1)
-        self.main_layout.addWidget(self.packing_tab, 0, 5, 1, 1)
-        self.main_layout.setRowMinimumHeight(0, 10)
-        self.main_layout.setColumnMinimumWidth(0, 30)
-        self.main_layout.setRowMinimumHeight(24, 10)
-
         self.moving_layout.addWidget(self.kitchen_tab, 2, 1, 1, 1)
         self.moving_layout.addWidget(self.bedroom_tab, 2, 2, 1, 1)
         self.moving_layout.addWidget(self.living_tab, 2, 3, 1, 1)
@@ -474,10 +620,7 @@ class UI(QWidget):
         self.moving_layout.addWidget(self.office_scroll_area, 3, 1, 20, 6)
         self.moving_layout.addWidget(self.boxes_scroll_area, 3, 1, 20, 6)
         self.moving_layout.addWidget(self.clear_selections_button, 23, 6, 1, 1, alignment=Qt.AlignRight)
-        self.moving_layout.addWidget(self.edit_items_button, 23, 1, 1, 1)
-        self.moving_layout.addWidget(self.edit_formulas_button, 23, 2, 1, 1)
-        self.moving_layout.addWidget(self.edit_value_multiplier_button, 23, 3, 1, 1)
-        self.moving_layout.addWidget(self.import_button, 23, 4, 1, 1)
+        self.moving_layout.addWidget(self.import_button, 23, 1, 1, 1)
         self.moving_layout.addWidget(self.round_trip_distance_label, 3, 8, 1, 2)
         self.moving_layout.addWidget(self.round_trip_distance, 3, 10, 1, 1, alignment=Qt.AlignRight)
         self.moving_layout.addWidget(self.estimator_adjustment_label, 4, 8, 1, 2)
@@ -492,17 +635,37 @@ class UI(QWidget):
         self.moving_layout.addWidget(self.see_details_button, 23, 8, 1, 2, alignment=Qt.AlignLeft)
         self.moving_layout.addWidget(self.details_frame, 12, 8, 11, 3, alignment=Qt.AlignCenter)
         self.moving_layout.addWidget(self.export_list_button, 23, 9, 1, 2, alignment=Qt.AlignRight)
-
-        self.packing_layout.addWidget(self.packing_scroll_area, 3, 1, 20, 6)
-        self.packing_layout.addWidget(self.table_widget, 3, 7, 6, 3, alignment=Qt.AlignLeft)
-        self.packing_layout.addWidget(self.packs_costs_frame, 9, 7, 5, 3, alignment=Qt.AlignLeft)
-        self.packing_layout.addWidget(self.calculate_packing_cost_button, 23, 6, 1, 1, alignment=Qt.AlignRight)
-        self.packing_layout.addWidget(self.clear_packing_selections_button, 23, 5, 1, 1, alignment=Qt.AlignRight)
-        self.packing_layout.addWidget(self.edit_supplies_button, 23, 1, 1, 1)
-        self.packing_layout.addWidget(self.edit_room_materials_button, 23, 2, 1, 1)
+        ###
         self.packing_layout.setRowMinimumHeight(0, 10)
         self.packing_layout.setColumnMinimumWidth(0, 30)
         self.packing_layout.setRowMinimumHeight(24, 10)
+        self.packing_layout.addWidget(self.packing_scroll_area, 3, 1, 20, 6)
+        self.packing_layout.addWidget(self.packs_costs_frame, 3, 7, 5, 3, alignment=Qt.AlignCenter)
+        self.packing_layout.addWidget(self.calculate_packing_cost_button, 9, 7, 1, 3, alignment=Qt.AlignCenter)
+        self.packing_layout.addWidget(self.clear_packing_selections_button, 23, 6, 1, 1, alignment=Qt.AlignRight)
+        ###
+        self.staff_layout.setRowMinimumHeight(0, 10)
+        self.staff_layout.setRowMinimumHeight(24, 10)
+        self.staff_layout.setColumnMinimumWidth(0, 30)
+        self.staff_layout.setColumnMinimumWidth(10, 30)
+        self.staff_layout.addWidget(self.staff_secret_key_label, 2, 1, 1, 9, alignment=Qt.AlignCenter)
+        self.staff_layout.addWidget(self.staff_secret_key_line, 3, 1, 1, 9, alignment=Qt.AlignCenter)
+        self.staff_layout.addWidget(self.staff_secret_key_button, 4, 1, 1, 9, alignment=Qt.AlignCenter)
+        self.staff_layout.addWidget(self.staff_wrong_secret_key_label, 5, 1, 1, 9, alignment=Qt.AlignCenter)
+        self.staff_layout.addWidget(self.staff_table_widget, 1, 1, 6, 9, alignment=Qt.AlignCenter)
+        self.staff_layout.addWidget(self.staff_costs_frame, 8, 1, 5, 9, alignment=Qt.AlignCenter)
+        self.staff_layout.addWidget(self.edit_items_button, 14, 1, 1, 1)
+        self.staff_layout.addWidget(self.edit_formulas_button, 14, 2, 1, 1)
+        self.staff_layout.addWidget(self.edit_value_multiplier_button, 14, 3, 1, 1)
+        self.staff_layout.addWidget(self.edit_supplies_button, 15, 1, 1, 1)
+        self.staff_layout.addWidget(self.edit_room_materials_button, 15, 2, 1, 1)
+        ###
+        self.summary_layout.setRowMinimumHeight(0, 10)
+        self.summary_layout.setRowMinimumHeight(24, 10)
+        self.summary_layout.setColumnMinimumWidth(0, 30)
+        self.summary_layout.addWidget(self.summary_moving_items_frame_scroll_area, 2, 1, 1, 1, alignment=Qt.AlignRight)
+        self.summary_layout.addWidget(self.summary_moving_frame, 3, 1, 1, 2, alignment=Qt.AlignCenter)
+        self.summary_layout.addWidget(self.summary_packing_rooms_frame_scroll_area, 2, 2, 1, 1, alignment=Qt.AlignLeft)
 
         # we set initial properties below
         self.i_kitchen = 0
@@ -512,13 +675,12 @@ class UI(QWidget):
         self.i_office = 0
         self.i_boxes = 0
         self.i_total = 0
-        self.see_details_button.hide()
-        self.export_list_button.hide()
-        self.get_kitchen_tab()
         self.i_room = 0
-        self.moving_tab.setStyleSheet("color: rgb(179, 89, 0);")
-        self.hide_layout(self.packing_layout)
         self.import_note = ''
+
+        # initial moving and packing costs
+        self.moving_cost_total = 0
+        self.packing_cost_total = 0
 
         # set font size below
         for label in self.findChildren(QLabel):
@@ -539,7 +701,7 @@ class UI(QWidget):
         # item list will hold all data of items inside a list
         self.all_items = cursor.fetchall()
         self.formula_numbers = []
-
+        ###
         for item in self.all_items:
             if item[2] == 'Kitchen':
                 self.add_row(self.kitchen_widget_layout, item[0], item[2])
@@ -553,14 +715,13 @@ class UI(QWidget):
                 self.add_row(self.office_widget_layout, item[0], item[2])
             elif item[2] == 'Boxes':
                 self.add_row(self.boxes_widget_layout, item[0], item[2])
-
+        ###
         self.all_supplies = []
         cursor.execute("""SELECT * FROM rooms ORDER BY id ASC""")
         self.all_rooms = cursor.fetchall()
         for item in self.all_rooms:
             self.add_row(self.packing_widget_layout, item[1], "Packing")
             self.i_room += 1
-
         conn.close()
 
         # adjust minimum scrollable area width below
@@ -588,7 +749,7 @@ class UI(QWidget):
         for label in self.packing_scroll_area.findChildren(QLabel):
             label.adjustSize()
             label_width.append(label.width())
-
+        ###
         row_height = self.outside_scroll_area.findChild(QFrame).height() * 10
         min_scroll_width = max(label_width) + row_button_width + row_button_width + row_line_edit_width + 20
         self.kitchen_scroll_area.setMinimumSize(min_scroll_width, row_height)
@@ -599,6 +760,10 @@ class UI(QWidget):
         self.outside_scroll_area.setMinimumSize(min_scroll_width, row_height)
         self.packing_scroll_area.setMinimumSize(400, 300)
 
+        # open app with these settings:
+        self.get_kitchen_tab()
+        self.moving_tab.setStyleSheet("color: rgb(179, 89, 0);")
+        self.show_and_hide_layout(self.moving_layout)
         # set initial size of the main window
         width = self.width()
         self.resize(800, width)
@@ -620,19 +785,45 @@ class UI(QWidget):
             elif item.layout():
                 self.hide_layout(item.layout())
 
-    def show_and_hide_layout(self, shown_layout, hidden_layout, is_moving = False):
-        self.show_layout(shown_layout)
-        self.hide_layout(hidden_layout)
-        if is_moving:
-            self.see_details_button.hide()
-            self.export_list_button.hide()
-            self.get_kitchen_tab()
-            self.details_frame.hide()
+    def show_and_hide_layout(self, layout):
+        for item in [self.moving_layout, self.packing_layout ,self.summary_layout, self.staff_layout]:
+            if layout == item:
+                self.show_layout(item)
+            else:
+                self.hide_layout(item)
+        if layout == self.moving_layout:
             self.moving_tab.setStyleSheet("color: rgb(179, 89, 0);")
             self.packing_tab.setStyleSheet("color: black;")
-        else:
+            self.summary_tab.setStyleSheet("color: black;")
+            self.staff_tab.setStyleSheet("color: black;")
+            self.see_details_button.hide()
+            self.export_list_button.hide()
+            self.details_frame.hide()
+            self.get_kitchen_tab()
+        elif layout == self.packing_layout:
             self.packing_tab.setStyleSheet("color: rgb(179, 89, 0);")
             self.moving_tab.setStyleSheet("color: black;")
+            self.summary_tab.setStyleSheet("color: black;")
+            self.staff_tab.setStyleSheet("color: black;")
+        elif layout == self.summary_layout:
+            self.summary_tab.setStyleSheet("color: rgb(179, 89, 0);")
+            self.staff_tab.setStyleSheet("color: black;")
+            self.packing_tab.setStyleSheet("color: black;")
+            self.moving_tab.setStyleSheet("color: black;")
+        elif layout == self.staff_layout:
+            self.summary_tab.setStyleSheet("color: black;")
+            self.staff_tab.setStyleSheet("color: rgb(179, 89, 0);")
+            self.packing_tab.setStyleSheet("color: black;")
+            self.moving_tab.setStyleSheet("color: black;")
+            self.staff_secret_key_line.setText("")
+            self.staff_wrong_secret_key_label.setText("")
+            self.staff_table_widget.hide()
+            self.staff_costs_frame.hide()
+            self.edit_items_button.hide()
+            self.edit_formulas_button.hide()
+            self.edit_value_multiplier_button.hide()
+            self.edit_supplies_button.hide()
+            self.edit_room_materials_button.hide()
 
     @staticmethod
     def set_scroll_area_settings(scroll_area, widget, widget_layout):
@@ -790,7 +981,7 @@ class UI(QWidget):
         self.edit_items_window.setWindowIcon(QIcon(resource_path("icons/edit.png")))
         layout = QGridLayout()
         self.edit_items_window.setLayout(layout)
-        self.edit_items_window.setWindowTitle("Edit Items")
+        self.edit_items_window.setWindowTitle("Edit Moving Items")
         self.edit_items_window.setStyleSheet("QDialog {"
                                              "background-color: rgb(225, 235, 240);}"
                                              "QPushButton {"
@@ -1042,7 +1233,7 @@ class UI(QWidget):
         self.edit_formulas_window.setWindowIcon(QIcon(resource_path("icons/formula.png")))
         layout = QGridLayout()
         self.edit_formulas_window.setLayout(layout)
-        self.edit_formulas_window.setWindowTitle("Edit Formulas")
+        self.edit_formulas_window.setWindowTitle("Edit Moving Formulas")
         self.edit_formulas_window.setStyleSheet("QDialog {"
                                                 "background-color: rgb(225, 235, 240);}"
                                                 "QPushButton {"
@@ -1168,7 +1359,7 @@ class UI(QWidget):
     def edit_hidden_values(self):
         self.edit_values_window = QDialog(None, Qt.WindowCloseButtonHint | Qt.WindowTitleHint)
         self.edit_values_window.setWindowIcon(QIcon(resource_path("icons/diamond.png")))
-        self.edit_values_window.setWindowTitle("Edit Item Value")
+        self.edit_values_window.setWindowTitle("Edit Moving Item Value")
         layout = QGridLayout()
         self.edit_values_window.setLayout(layout)
         self.edit_values_window.setStyleSheet("QDialog {"
@@ -1787,6 +1978,13 @@ class UI(QWidget):
         self.main_estimate_label.setText(f"Estimate: ${'{:.2f}'.format(final_value)}")
         self.unload_only_estimate_label.setText(f"Unload Only Estimate: ${'{:.2f}'.format(unload_only_final)}")
         self.load_only_estimate_label.setText(f"Load Only Estimate: ${'{:.2f}'.format(load_only_final)}")
+        #
+        self.main_estimate_label_2.setText(f"Moving Estimate: ${'{:.2f}'.format(final_value)}")
+        self.unload_only_estimate_label_2.setText(f"Unload Only Moving Estimate: ${'{:.2f}'.format(unload_only_final)}")
+        self.load_only_estimate_label_2.setText(f"Load Only Moving Estimate: ${'{:.2f}'.format(load_only_final)}")
+        self.moving_cost_total = final_value
+        self.moving_and_packing_total_cost.setText(f"Moving & Packing Total Cost: ${round(self.packing_cost_total + self.moving_cost_total, 2)}")
+        #
         self.see_details_button.show()
         self.see_details_button.setText("See Details")
         self.details_frame.hide()
@@ -1810,6 +2008,13 @@ class UI(QWidget):
                                                                     second_truck_addition, small_addition, med_addition,
                                                                     large_addition, estimator_addition, adjust,
                                                                     final_value, scale))
+        
+        ###
+        summary_moving_items_text = "Items to Move: \n\n"
+        for i in range(len(item_list)):
+            if not number_list[i] == '0':
+                summary_moving_items_text += f"{item_list[i]} x{number_list[i]}\n"
+        self.summary_moving_items_label.setText(summary_moving_items_text)
 
     def calculate_packing_cost(self):
         # get latest rooms below
@@ -1828,7 +2033,6 @@ class UI(QWidget):
         # get names as a list
         for item in self.packing_widget.findChildren(QLabel):
             item_list.append(item.text())
-
         # get numbers as a list
         for item in self.packing_widget.findChildren(QLineEdit):
             if not item.text() == '':
@@ -1843,6 +2047,9 @@ class UI(QWidget):
         tape_roll_count = 0
         labor_count = 0
 
+        ###
+        summary_packing_rooms_text = "Rooms to Pack: \n\n"
+
         for index, item in enumerate(number_list):
             if item != '0':
                 room_name = item_list[index]
@@ -1855,6 +2062,12 @@ class UI(QWidget):
                 paper_roll_count += int(item) * room[5]
                 tape_roll_count += int(item) * room[6]
                 labor_count += int(item) * room[7]
+
+                summary_packing_rooms_text += f"{room_name} x{item}\n"
+
+        self.summary_packing_rooms_label.setText(summary_packing_rooms_text)
+        
+        all_materials_count = small_box_count + medium_box_count + large_box_count + paper_roll_count + tape_roll_count
         
         # multiply all counts with order_price
         small_box_cost = small_box_count * self.all_supplies[0][3]
@@ -1887,44 +2100,66 @@ class UI(QWidget):
         total_packing_cost = total_packing_cost_without_labor + labor_cost
 
         # set new calculated numbers
-        self.table_widget.setItem(0, 1, QTableWidgetItem(str(round(small_box_count, 2) if is_float_not_integer(small_box_count) else int(small_box_count))))
-        self.table_widget.setItem(0, 2, QTableWidgetItem("$" + str(round(small_box_cost, 2) if is_float_not_integer(small_box_cost) else int(small_box_cost))))
-        self.table_widget.setItem(0, 3, QTableWidgetItem("$" + str(round(small_box_resell_price, 2) if is_float_not_integer(small_box_resell_price) else int(small_box_resell_price))))
-        self.table_widget.setItem(0, 4, QTableWidgetItem("$" + str(round(small_box_resell_price - small_box_cost, 2) if is_float_not_integer(small_box_resell_price - small_box_cost) else int(small_box_resell_price - small_box_cost))))
+        self.staff_table_widget.setItem(0, 1, QTableWidgetItem(str(round(small_box_count, 2) if is_float_not_integer(small_box_count) else int(small_box_count))))
+        self.staff_table_widget.setItem(0, 2, QTableWidgetItem("$" + str(round(small_box_cost, 2) if is_float_not_integer(small_box_cost) else int(small_box_cost))))
+        self.staff_table_widget.setItem(0, 3, QTableWidgetItem("$" + str(round(small_box_resell_price, 2) if is_float_not_integer(small_box_resell_price) else int(small_box_resell_price))))
+        self.staff_table_widget.setItem(0, 4, QTableWidgetItem("$" + str(round(small_box_resell_price - small_box_cost, 2) if is_float_not_integer(small_box_resell_price - small_box_cost) else int(small_box_resell_price - small_box_cost))))
 
-        self.table_widget.setItem(1, 1, QTableWidgetItem(str(round(medium_box_count, 2) if is_float_not_integer(medium_box_count) else int(medium_box_count))))
-        self.table_widget.setItem(1, 2, QTableWidgetItem("$" + str(round(medium_box_cost, 2) if is_float_not_integer(medium_box_cost) else int(medium_box_cost))))
-        self.table_widget.setItem(1, 3, QTableWidgetItem("$" + str(round(medium_box_resell_price, 2) if is_float_not_integer(medium_box_resell_price) else int(medium_box_resell_price))))
-        self.table_widget.setItem(1, 4, QTableWidgetItem("$" + str(round(medium_box_resell_price - medium_box_cost, 2) if is_float_not_integer(medium_box_resell_price - medium_box_cost) else int(medium_box_resell_price - medium_box_cost))))
+        self.staff_table_widget.setItem(1, 1, QTableWidgetItem(str(round(medium_box_count, 2) if is_float_not_integer(medium_box_count) else int(medium_box_count))))
+        self.staff_table_widget.setItem(1, 2, QTableWidgetItem("$" + str(round(medium_box_cost, 2) if is_float_not_integer(medium_box_cost) else int(medium_box_cost))))
+        self.staff_table_widget.setItem(1, 3, QTableWidgetItem("$" + str(round(medium_box_resell_price, 2) if is_float_not_integer(medium_box_resell_price) else int(medium_box_resell_price))))
+        self.staff_table_widget.setItem(1, 4, QTableWidgetItem("$" + str(round(medium_box_resell_price - medium_box_cost, 2) if is_float_not_integer(medium_box_resell_price - medium_box_cost) else int(medium_box_resell_price - medium_box_cost))))
 
-        self.table_widget.setItem(2, 1, QTableWidgetItem(str(round(large_box_count, 2) if is_float_not_integer(large_box_count) else int(large_box_count))))
-        self.table_widget.setItem(2, 2, QTableWidgetItem("$" + str(round(large_box_cost, 2) if is_float_not_integer(large_box_cost) else int(large_box_cost))))
-        self.table_widget.setItem(2, 3, QTableWidgetItem("$" + str(round(large_box_resell_price, 2) if is_float_not_integer(large_box_resell_price) else int(large_box_resell_price))))
-        self.table_widget.setItem(2, 4, QTableWidgetItem("$" + str(round(large_box_resell_price - large_box_cost, 2) if is_float_not_integer(large_box_resell_price - large_box_cost) else int(large_box_resell_price - large_box_cost))))
+        self.staff_table_widget.setItem(2, 1, QTableWidgetItem(str(round(large_box_count, 2) if is_float_not_integer(large_box_count) else int(large_box_count))))
+        self.staff_table_widget.setItem(2, 2, QTableWidgetItem("$" + str(round(large_box_cost, 2) if is_float_not_integer(large_box_cost) else int(large_box_cost))))
+        self.staff_table_widget.setItem(2, 3, QTableWidgetItem("$" + str(round(large_box_resell_price, 2) if is_float_not_integer(large_box_resell_price) else int(large_box_resell_price))))
+        self.staff_table_widget.setItem(2, 4, QTableWidgetItem("$" + str(round(large_box_resell_price - large_box_cost, 2) if is_float_not_integer(large_box_resell_price - large_box_cost) else int(large_box_resell_price - large_box_cost))))
 
-        self.table_widget.setItem(3, 1, QTableWidgetItem(str(round(paper_roll_count, 2) if is_float_not_integer(paper_roll_count) else int(paper_roll_count))))
-        self.table_widget.setItem(3, 2, QTableWidgetItem("$" + str(round(paper_roll_cost, 2) if is_float_not_integer(paper_roll_cost) else int(paper_roll_cost))))
-        self.table_widget.setItem(3, 3, QTableWidgetItem("$" + str(round(paper_roll_resell_price, 2) if is_float_not_integer(paper_roll_resell_price) else int(paper_roll_resell_price))))
-        self.table_widget.setItem(3, 4, QTableWidgetItem("$" + str(round(paper_roll_resell_price - paper_roll_cost, 2) if is_float_not_integer(paper_roll_resell_price - paper_roll_cost) else int(paper_roll_resell_price - paper_roll_cost))))
+        self.staff_table_widget.setItem(3, 1, QTableWidgetItem(str(round(paper_roll_count, 2) if is_float_not_integer(paper_roll_count) else int(paper_roll_count))))
+        self.staff_table_widget.setItem(3, 2, QTableWidgetItem("$" + str(round(paper_roll_cost, 2) if is_float_not_integer(paper_roll_cost) else int(paper_roll_cost))))
+        self.staff_table_widget.setItem(3, 3, QTableWidgetItem("$" + str(round(paper_roll_resell_price, 2) if is_float_not_integer(paper_roll_resell_price) else int(paper_roll_resell_price))))
+        self.staff_table_widget.setItem(3, 4, QTableWidgetItem("$" + str(round(paper_roll_resell_price - paper_roll_cost, 2) if is_float_not_integer(paper_roll_resell_price - paper_roll_cost) else int(paper_roll_resell_price - paper_roll_cost))))
 
-        self.table_widget.setItem(4, 1, QTableWidgetItem(str(round(tape_roll_count, 2) if is_float_not_integer(tape_roll_count) else int(tape_roll_count))))
-        self.table_widget.setItem(4, 2, QTableWidgetItem("$" + str(round(tape_roll_cost, 2) if is_float_not_integer(tape_roll_cost) else int(tape_roll_cost))))
-        self.table_widget.setItem(4, 3, QTableWidgetItem("$" + str(round(tape_roll_resell_price, 2) if is_float_not_integer(tape_roll_resell_price) else int(tape_roll_resell_price))))
-        self.table_widget.setItem(4, 4, QTableWidgetItem("$" + str(round(tape_roll_resell_price - tape_roll_cost, 2) if is_float_not_integer(tape_roll_resell_price - tape_roll_cost) else int(tape_roll_resell_price - tape_roll_cost))))
+        self.staff_table_widget.setItem(4, 1, QTableWidgetItem(str(round(tape_roll_count, 2) if is_float_not_integer(tape_roll_count) else int(tape_roll_count))))
+        self.staff_table_widget.setItem(4, 2, QTableWidgetItem("$" + str(round(tape_roll_cost, 2) if is_float_not_integer(tape_roll_cost) else int(tape_roll_cost))))
+        self.staff_table_widget.setItem(4, 3, QTableWidgetItem("$" + str(round(tape_roll_resell_price, 2) if is_float_not_integer(tape_roll_resell_price) else int(tape_roll_resell_price))))
+        self.staff_table_widget.setItem(4, 4, QTableWidgetItem("$" + str(round(tape_roll_resell_price - tape_roll_cost, 2) if is_float_not_integer(tape_roll_resell_price - tape_roll_cost) else int(tape_roll_resell_price - tape_roll_cost))))
 
-        for row in range(self.table_widget.rowCount()):
-            for col in range(1, self.table_widget.columnCount()):
-                item = self.table_widget.item(row, col)
+        self.staff_table_widget.setItem(5, 1, QTableWidgetItem(str(round(all_materials_count, 2) if is_float_not_integer(all_materials_count) else int(all_materials_count))))
+        self.staff_table_widget.setItem(5, 2, QTableWidgetItem("$" + str(round(total_supply_cost, 2) if is_float_not_integer(total_supply_cost) else int(total_supply_cost))))
+        self.staff_table_widget.setItem(5, 3, QTableWidgetItem("$" + str(round(total_packing_cost_without_labor, 2) if is_float_not_integer(total_packing_cost_without_labor) else int(total_packing_cost_without_labor))))
+        self.staff_table_widget.setItem(5, 4, QTableWidgetItem("$" + str(round(total_packing_cost_without_labor - total_supply_cost, 2) if is_float_not_integer(total_packing_cost_without_labor - total_supply_cost) else int(total_packing_cost_without_labor - total_supply_cost))))
+
+        for row in range(self.staff_table_widget.rowCount()):
+            for col in range(1, self.staff_table_widget.columnCount()):
+                item = self.staff_table_widget.item(row, col)
                 if item is not None:
                     item.setTextAlignment(Qt.AlignCenter)
 
+        self.packs_small_boxes.setText(f"Small Boxes: {str(round(small_box_count, 2) if is_float_not_integer(small_box_count) else int(small_box_count))} (${round(small_box_cost, 2) if is_float_not_integer(small_box_cost) else int(small_box_cost)})")
+        self.packs_medium_boxes.setText(f"Medium Boxes: {str(round(medium_box_count, 2) if is_float_not_integer(medium_box_count) else int(medium_box_count))} (${round(medium_box_cost, 2) if is_float_not_integer(medium_box_cost) else int(medium_box_cost)})")
+        self.packs_large_boxes.setText(f"Large Boxes: {str(round(large_box_count, 2) if is_float_not_integer(large_box_count) else int(large_box_count))} (${round(large_box_cost, 2) if is_float_not_integer(large_box_cost) else int(large_box_cost)})")
+        self.packs_paper_rolls.setText(f"Paper Rolls: {str(round(paper_roll_count, 2) if is_float_not_integer(paper_roll_count) else int(paper_roll_count))} (${round(paper_roll_cost, 2) if is_float_not_integer(paper_roll_cost) else int(paper_roll_cost)})")
+        self.packs_tape_rolls.setText(f"Tape Rolls: {str(round(tape_roll_count, 2) if is_float_not_integer(tape_roll_count) else int(tape_roll_count))} (${round(tape_roll_cost, 2) if is_float_not_integer(tape_roll_cost) else int(tape_roll_cost)})")
         self.packs_labor_hours.setText(f"Labor Hours: {labor_count if is_float_not_integer(labor_count) else int(labor_count)} (${round(labor_cost, 2) if is_float_not_integer(labor_cost) else int(labor_cost)})")
         self.packs_total_packing_cost.setText(f"Total Packing Cost: ${round(total_packing_cost, 2) if is_float_not_integer(total_packing_cost) else int(total_packing_cost)}")
-        self.packs_supply_cost.setText(f"Total Supply Cost: ${round(total_supply_cost, 2) if is_float_not_integer(total_supply_cost) else int(total_supply_cost)}")
-        self.packs_supply_profit.setText(
-            f"Total Supply Material Profit: ${round(total_packing_cost_without_labor - total_supply_cost, 2) if is_float_not_integer(total_packing_cost_without_labor - total_supply_cost) else int(total_packing_cost_without_labor - total_supply_cost)}"
-        )
-        self.packs_supply_resale_price.setText(f"Total Supply Resell Price: ${round(total_packing_cost_without_labor, 2) if is_float_not_integer(total_packing_cost_without_labor) else int(total_packing_cost_without_labor)}")
+        self.packs_supply_resale_price.setText(f"Materials Cost: ${round(total_packing_cost_without_labor, 2) if is_float_not_integer(total_packing_cost_without_labor) else int(total_packing_cost_without_labor)}")
+
+        self.packs_small_boxes_2.setText(f"Small Boxes:  ($)")
+        self.packs_medium_boxes_2.setText(f"Medium Boxes: {str(round(medium_box_count, 2) if is_float_not_integer(medium_box_count) else int(medium_box_count))} (${round(medium_box_cost, 2) if is_float_not_integer(medium_box_cost) else int(medium_box_cost)})")
+        self.packs_large_boxes_2.setText(f"Large Boxes: {str(round(large_box_count, 2) if is_float_not_integer(large_box_count) else int(large_box_count))} (${round(large_box_cost, 2) if is_float_not_integer(large_box_cost) else int(large_box_cost)})")
+        self.packs_paper_rolls_2.setText(f"Paper Rolls: {str(round(paper_roll_count, 2) if is_float_not_integer(paper_roll_count) else int(paper_roll_count))} (${round(paper_roll_cost, 2) if is_float_not_integer(paper_roll_cost) else int(paper_roll_cost)})")
+        self.packs_tape_rolls_2.setText(f"Tape Rolls: {str(round(tape_roll_count, 2) if is_float_not_integer(tape_roll_count) else int(tape_roll_count))} (${round(tape_roll_cost, 2) if is_float_not_integer(tape_roll_cost) else int(tape_roll_cost)})")
+        self.packs_labor_hours_2.setText(f"Labor Hours: {labor_count if is_float_not_integer(labor_count) else int(labor_count)} (${round(labor_cost, 2) if is_float_not_integer(labor_cost) else int(labor_cost)})")
+        self.packs_total_packing_cost_2.setText(f"Total Packing Cost: ${round(total_packing_cost, 2) if is_float_not_integer(total_packing_cost) else int(total_packing_cost)}")
+        self.packs_supply_cost_2.setText(f"Total Supply Cost: ${round(total_supply_cost, 2) if is_float_not_integer(total_supply_cost) else int(total_supply_cost)}")
+        self.packs_supply_resale_price_2.setText(f"Total Supply Resell Price: ${round(total_packing_cost_without_labor, 2) if is_float_not_integer(total_packing_cost_without_labor) else int(total_packing_cost_without_labor)}")
+        self.packs_supply_profit_2.setText(f"Total Supply Material Profit: ${round(total_packing_cost_without_labor - total_supply_cost, 2) if is_float_not_integer(total_packing_cost_without_labor - total_supply_cost) else int(total_packing_cost_without_labor - total_supply_cost)}")
+
+        self.packing_cost_total = round(total_packing_cost, 2) if is_float_not_integer(total_packing_cost) else int(total_packing_cost)
+        self.packing_cost_label_2.setText(f"Packing Materials Cost: ${round(total_packing_cost_without_labor, 2) if is_float_not_integer(total_packing_cost_without_labor) else int(total_packing_cost_without_labor)}")
+        self.packing_total_label_2.setText(f"Packing Total Cost: ${round(total_packing_cost, 2) if is_float_not_integer(total_packing_cost) else int(total_packing_cost)}")
+        self.moving_and_packing_total_cost.setText(f"Moving & Packing Total Cost: ${round(self.packing_cost_total + self.moving_cost_total, 2)}")
 
     def edit_supply_costs(self):
         def change_edited_supply():
@@ -1944,7 +2179,7 @@ class UI(QWidget):
         self.edit_supply_costs_window.setWindowIcon(QIcon(resource_path("icons/edit.png")))
         layout = QGridLayout()
         self.edit_supply_costs_window.setLayout(layout)
-        self.edit_supply_costs_window.setWindowTitle("Edit Supply Materials")
+        self.edit_supply_costs_window.setWindowTitle("Edit Packing Item Supply Materials")
         self.edit_supply_costs_window.setStyleSheet("QDialog {"
                                              "background-color: rgb(225, 235, 240);"
                                              "min-width: 400px;}"
@@ -2094,7 +2329,7 @@ class UI(QWidget):
         self.edit_room_window.setWindowIcon(QIcon(resource_path("icons/edit.png")))
         layout = QGridLayout()
         self.edit_room_window.setLayout(layout)
-        self.edit_room_window.setWindowTitle("Edit Room Needs")
+        self.edit_room_window.setWindowTitle("Edit Packing Item Room Needs")
         self.edit_room_window.setStyleSheet("QDialog {"
                                              "background-color: rgb(225, 235, 240);"
                                              "min-width: 400px;}"
@@ -2272,6 +2507,23 @@ class UI(QWidget):
             self.add_row(self.packing_widget_layout, item[1], "Packing")
         self.edit_room_window.close()
 
+    def grant_access_to_staff(self):
+        input_key = self.staff_secret_key_line.text()
+        if input_key != ADMIN_PW:
+            self.staff_wrong_secret_key_label.setText("            Wrong secret key")
+        else:
+            self.staff_secret_key_label.hide()
+            self.staff_secret_key_line.hide()
+            self.staff_secret_key_button.hide()
+            self.staff_wrong_secret_key_label.hide()
+            # show staff parts
+            self.staff_table_widget.show()
+            self.staff_costs_frame.show()
+            self.edit_items_button.show()
+            self.edit_formulas_button.show()
+            self.edit_value_multiplier_button.show()
+            self.edit_supplies_button.show()
+            self.edit_room_materials_button.show()
 
 app = QApplication(sys.argv)
 UIWindow = UI()
