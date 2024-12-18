@@ -241,7 +241,7 @@ class UI(QWidget):
         self.packs_supply_resale_price.setText("")
         self.packs_supply_resale_price.setStyleSheet("font-weight: bold;")
         self.packs_total_packing_cost = QLabel()
-        self.packs_total_packing_cost.setText("Total Packing Cost: $0")
+        self.packs_total_packing_cost.setText("")
         self.packs_total_packing_cost.setStyleSheet("font-weight: bold;")
         self.packs_costs_layout.addWidget(self.packs_small_boxes)
         self.packs_costs_layout.addWidget(self.packs_medium_boxes)
@@ -1165,7 +1165,7 @@ class UI(QWidget):
         self.all_items.clear()
         conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
-        sql = '''SELECT item_name, hidden_value, item_tab FROM items'''
+        sql = '''SELECT item_name, hidden_value, item_tab FROM items ORDER BY item_name ASC'''
         cursor.execute(sql)
         self.all_items = cursor.fetchall()
         conn.close()
@@ -1846,18 +1846,26 @@ class UI(QWidget):
             else:
                 return 1
 
-        def close_details():
+        def close_details(main_estimate_text, unload_only_estimate_text, load_only_estimate_text):
             self.see_details_button.setText("See Details")
             self.see_details_button.clicked.disconnect()
             self.see_details_button.clicked.connect(lambda: see_details(base_score, distance_addition,
                                                                         long_distance_addition, fort_riley_addition,
                                                                         second_truck_addition, small_addition,
                                                                         med_addition, large_addition,
-                                                                        estimator_addition, adjust, final_value, scale))
+                                                                        estimator_addition, adjust, final_value, scale,
+                                                                        main_estimate_text, unload_only_estimate_text, load_only_estimate_text))
             self.details_frame.hide()
+            self.main_estimate_label.setText("")
+            self.unload_only_estimate_label.setText("")
+            self.load_only_estimate_label.setText("")
 
         def see_details(base, distance, long_distance, fort_riley, second_truck, small, med, large, estimator, adjust,
-                        final, scale):
+                        final, scale, main_estimate_text, unload_only_estimate_text, load_only_estimate_text):
+            self.main_estimate_label.setText(main_estimate_text)
+            self.unload_only_estimate_label.setText(unload_only_estimate_text)
+            self.load_only_estimate_label.setText(load_only_estimate_text)
+
             sum = base + distance + long_distance + fort_riley + second_truck + small + med + large + estimator
             self.details_1.setText(f"Base Score: ${base}")
             self.details_2.setText(f"Distance Addition: ${distance}")
@@ -1885,7 +1893,7 @@ class UI(QWidget):
             self.details_12.setText(f"After Sliding Scale Rate ({scale}): ${'{:.2f}'.format(final)}")
             self.see_details_button.setText("Close Details")
             self.see_details_button.clicked.disconnect()
-            self.see_details_button.clicked.connect(close_details)
+            self.see_details_button.clicked.connect(lambda: close_details(main_estimate_text, unload_only_estimate_text, load_only_estimate_text))
             self.details_frame.show()
 
         def open_to_export(items, base, distance, long_distance, fort_riley, second_truck, small, med, large,
@@ -2171,9 +2179,9 @@ class UI(QWidget):
         unload_only_final = round(final_value * unload, 2)
         inputs = [int(self.round_trip_distance.text()), estimator_addition, self.ft_riley_adjustment.currentText(),
                   slider_value]
-        self.main_estimate_label.setText(f"Estimate: ${'{:.2f}'.format(final_value)}")
-        self.unload_only_estimate_label.setText(f"Unload Only Estimate: ${'{:.2f}'.format(unload_only_final)}")
-        self.load_only_estimate_label.setText(f"Load Only Estimate: ${'{:.2f}'.format(load_only_final)}")
+        self.main_estimate_label.setText("")
+        self.unload_only_estimate_label.setText("")
+        self.load_only_estimate_label.setText("")
         #
         self.main_estimate_label_2.setText(f"Moving Estimate: ${'{:.2f}'.format(final_value)}")
         self.unload_only_estimate_label_2.setText(f"Unload Only Moving Estimate: ${'{:.2f}'.format(unload_only_final)}")
@@ -2203,7 +2211,10 @@ class UI(QWidget):
                                                                     long_distance_addition, fort_riley_addition,
                                                                     second_truck_addition, small_addition, med_addition,
                                                                     large_addition, estimator_addition, adjust,
-                                                                    final_value, scale))
+                                                                    final_value, scale,
+                                                                    f"Estimate: ${'{:.2f}'.format(final_value)}",
+                                                                    f"Unload Only Estimate: ${'{:.2f}'.format(unload_only_final)}",
+                                                                    f"Load Only Estimate: ${'{:.2f}'.format(load_only_final)}"))
         
         ###
         summary_moving_items_text = "Items to Move: \n\n"
@@ -2366,7 +2377,7 @@ class UI(QWidget):
         self.packs_tape_rolls.setText(f"Tape Rolls: {str(round(tape_roll_count, 2) if is_float_not_integer(tape_roll_count) else int(tape_roll_count))}")
         self.packs_labor_hours.setText(f"Labor Hours: {labor_count if is_float_not_integer(labor_count) else int(labor_count)}")
         self.packs_supply_resale_price.setText("")
-        self.packs_total_packing_cost.setText(f"Total Packing Cost: ${round(total_packing_cost, 2) if is_float_not_integer(total_packing_cost) else int(total_packing_cost)}")
+        self.packs_total_packing_cost.setText("")
 
         self.packs_small_boxes_2.setText(f"Small Boxes: {str(round(small_box_count, 2) if is_float_not_integer(small_box_count) else int(small_box_count))} (${round(small_box_cost, 2) if is_float_not_integer(small_box_cost) else int(small_box_cost)})")
         self.packs_medium_boxes_2.setText(f"Medium Boxes: {str(round(medium_box_count, 2) if is_float_not_integer(medium_box_count) else int(medium_box_count))} (${round(medium_box_cost, 2) if is_float_not_integer(medium_box_cost) else int(medium_box_cost)})")
@@ -2398,17 +2409,19 @@ class UI(QWidget):
                 round(paper_roll_resell_price, 2) if is_float_not_integer(paper_roll_resell_price) else int(paper_roll_resell_price),
                 round(tape_roll_resell_price, 2) if is_float_not_integer(tape_roll_resell_price) else int(tape_roll_resell_price),
                 f"Materials Cost: ${round(total_packing_cost_without_labor, 2) if is_float_not_integer(total_packing_cost_without_labor) else int(total_packing_cost_without_labor)}",
+                f"Total Packing Cost: ${round(total_packing_cost, 2) if is_float_not_integer(total_packing_cost) else int(total_packing_cost)}",
                 round(labor_cost, 2) if is_float_not_integer(labor_cost) else int(labor_cost),
             )
         )
 
-    def display_packs_details(self, small_box_cost, medium_box_cost, large_box_cost, paper_roll_cost, tape_roll_cost, materials_cost_text, labor_cost):
+    def display_packs_details(self, small_box_cost, medium_box_cost, large_box_cost, paper_roll_cost, tape_roll_cost, materials_cost_text, total_packing_cost_text, labor_cost):
         self.packs_small_boxes.setText(self.packs_small_boxes.text() + f" (${small_box_cost})")
         self.packs_medium_boxes.setText(self.packs_medium_boxes.text() + f" (${medium_box_cost})")
         self.packs_large_boxes.setText(self.packs_large_boxes.text() + f" (${large_box_cost})")
         self.packs_paper_rolls.setText(self.packs_paper_rolls.text() + f" (${paper_roll_cost})")
         self.packs_tape_rolls.setText(self.packs_tape_rolls.text() + f" (${tape_roll_cost})")
         self.packs_supply_resale_price.setText(materials_cost_text)
+        self.packs_total_packing_cost.setText(total_packing_cost_text)
         self.packs_labor_hours.setText(self.packs_labor_hours.text() + f" (${labor_cost})")
         self.packs_see_details_button.setText("Close Details")
         try:
@@ -2425,6 +2438,7 @@ class UI(QWidget):
         self.packs_tape_rolls.setText(self.packs_tape_rolls.text().replace(f" (${tape_roll_cost})", ""))
         self.packs_labor_hours.setText(self.packs_labor_hours.text().replace(f" (${labor_cost})", ""))
         self.packs_supply_resale_price.setText("")
+        self.packs_total_packing_cost.setText("")
         self.packs_see_details_button.setText("See Details")
         try:
             self.packs_see_details_button.clicked.disconnect()
