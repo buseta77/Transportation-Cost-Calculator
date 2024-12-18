@@ -1,0 +1,452 @@
+[
+   {
+      "item_name":"Appliances (Misc. Large)",
+      "hidden_value":20,
+      "item_tab":"Kitchen"
+   },
+   {
+      "item_name":"Appliances (Misc. Small)",
+      "hidden_value":5,
+      "item_tab":"Kitchen"
+   },
+   {
+      "item_name":"Armoire",
+      "hidden_value":20,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Art",
+      "hidden_value":5,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Barstools",
+      "hidden_value":5,
+      "item_tab":"Kitchen"
+   },
+   {
+      "item_name":"Bed Frame",
+      "hidden_value":15,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Bench",
+      "hidden_value":5,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Bike",
+      "hidden_value":5,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Bookshelf",
+      "hidden_value":15,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Boxes",
+      "hidden_value":1,
+      "item_tab":"Boxes"
+   },
+   {
+      "item_name":"Buffet",
+      "hidden_value":20,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Bunkbeds",
+      "hidden_value":20,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Cabinet",
+      "hidden_value":15,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Cat Tree",
+      "hidden_value":10,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Chair-Other",
+      "hidden_value":10,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Chest",
+      "hidden_value":5,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"China Cabinet",
+      "hidden_value":20,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Clock",
+      "hidden_value":5,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Clothes Rack",
+      "hidden_value":10,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Coffee Table",
+      "hidden_value":5,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Couch",
+      "hidden_value":20,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Credenza",
+      "hidden_value":20,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Crib",
+      "hidden_value":15,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Decor",
+      "hidden_value":5,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Dehumidifier",
+      "hidden_value":5,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Desk (large, L-shaped)",
+      "hidden_value":15,
+      "item_tab":"Office"
+   },
+   {
+      "item_name":"Desk (small)",
+      "hidden_value":5,
+      "item_tab":"Office"
+   },
+   {
+      "item_name":"Dining Chair",
+      "hidden_value":5,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Dining Table",
+      "hidden_value":15,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Dresser",
+      "hidden_value":10,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Dryer",
+      "hidden_value":20,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Electronics",
+      "hidden_value":10,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"End Table",
+      "hidden_value":10,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Entertainment Center",
+      "hidden_value":15,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Exercise Bench",
+      "hidden_value":20,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Fan",
+      "hidden_value":5,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Filing Cabinet",
+      "hidden_value":20,
+      "item_tab":"Office"
+   },
+   {
+      "item_name":"Freezer",
+      "hidden_value":20,
+      "item_tab":"Kitchen"
+   },
+   {
+      "item_name":"Fridge",
+      "hidden_value":20,
+      "item_tab":"Kitchen"
+   },
+   {
+      "item_name":"Full Bed",
+      "hidden_value":15,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Futon",
+      "hidden_value":20,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Garage Items (Misc.)",
+      "hidden_value":20,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Grandfather Clock",
+      "hidden_value":20,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Grill",
+      "hidden_value":20,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Head Board",
+      "hidden_value":15,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Hutch / Armoire / Credenza",
+      "hidden_value":20,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Jewelry Case",
+      "hidden_value":10,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"King Bed",
+      "hidden_value":30,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Lamp",
+      "hidden_value":10,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Lawn Tools",
+      "hidden_value":20,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Loveseat",
+      "hidden_value":20,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Microwave",
+      "hidden_value":5,
+      "item_tab":"Kitchen"
+   },
+   {
+      "item_name":"Mirror",
+      "hidden_value":5,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Misc. Large Items (ex: Statue, Butcher Block)",
+      "hidden_value":30,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Misc. Med Items (ex: Keyboard, Fishing Gear)",
+      "hidden_value":20,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Misc. Small Items (ex: Iron, Kitchen Trash Can, Fish Tank)",
+      "hidden_value":10,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Mowers",
+      "hidden_value":20,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Nightstand",
+      "hidden_value":10,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Office Chair",
+      "hidden_value":5,
+      "item_tab":"Office"
+   },
+   {
+      "item_name":"Ottoman",
+      "hidden_value":5,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Outdoor Chair",
+      "hidden_value":10,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Patio Furniture (Non-foldable Tables and Chairs)",
+      "hidden_value":20,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Pictures",
+      "hidden_value":5,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Qeen Bed (or Undisclosed Size)",
+      "hidden_value":20,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Recliner",
+      "hidden_value":20,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Rugs / Mats",
+      "hidden_value":5,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Sectional",
+      "hidden_value":20,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Sewing Machine",
+      "hidden_value":5,
+      "item_tab":"Office"
+   },
+   {
+      "item_name":"Shelf",
+      "hidden_value":15,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Smoker",
+      "hidden_value":20,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Sound System",
+      "hidden_value":10,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Speakers",
+      "hidden_value":10,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Stove",
+      "hidden_value":20,
+      "item_tab":"Kitchen"
+   },
+   {
+      "item_name":"Tables (Other)",
+      "hidden_value":15,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Toolbox",
+      "hidden_value":20,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Totes",
+      "hidden_value":1,
+      "item_tab":"Boxes"
+   },
+   {
+      "item_name":"Toys",
+      "hidden_value":10,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Trunk",
+      "hidden_value":5,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"TV",
+      "hidden_value":10,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"TV Stand",
+      "hidden_value":10,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Twin Bed",
+      "hidden_value":15,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Utility Cart",
+      "hidden_value":20,
+      "item_tab":"Living Room"
+   },
+   {
+      "item_name":"Vanity",
+      "hidden_value":10,
+      "item_tab":"Bedroom"
+   },
+   {
+      "item_name":"Washer",
+      "hidden_value":20,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Weights",
+      "hidden_value":30,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Workbench",
+      "hidden_value":20,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Piano (Upright Only)",
+      "hidden_value":425,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Treadmill",
+      "hidden_value":400,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Bowflex",
+      "hidden_value":400,
+      "item_tab":"Outside"
+   },
+   {
+      "item_name":"Gun Safe",
+      "hidden_value":450,
+      "item_tab":"Outside"
+   }
+]

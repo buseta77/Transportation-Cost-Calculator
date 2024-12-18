@@ -1,0 +1,218 @@
+[
+   {
+      "room_name": "Pantry",
+      "small_box_quantity": 10,
+      "medium_box_quantity": 15,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 5,
+      "tape_roll_quantity": 0.5,
+      "labor_hours": 1
+   },
+   {
+      "room_name": "Kitchen (Large)",
+      "small_box_quantity": 30,
+      "medium_box_quantity": 25,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 20,
+      "tape_roll_quantity": 2,
+      "labor_hours": 8
+   },
+   {
+      "room_name": "Kitchen (Medium)",
+      "small_box_quantity": 25,
+      "medium_box_quantity": 15,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 15,
+      "tape_roll_quantity": 2,
+      "labor_hours": 5
+   },
+   {
+      "room_name": "Kitchen (Small)",
+      "small_box_quantity": 15,
+      "medium_box_quantity": 10,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 10,
+      "tape_roll_quantity": 0.5,
+      "labor_hours": 3.5
+   },
+   {
+      "room_name": "Dining Room (w/ hutch)",
+      "small_box_quantity": 25,
+      "medium_box_quantity": 15,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 8,
+      "tape_roll_quantity": 1,
+      "labor_hours": 2
+   },
+   {
+      "room_name": "Dining Room (w/o hutch)",
+      "small_box_quantity": 15,
+      "medium_box_quantity": 10,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 4,
+      "tape_roll_quantity": 1,
+      "labor_hours": 1.5
+   },
+   {
+      "room_name": "Bedroom (Large)",
+      "small_box_quantity": 10,
+      "medium_box_quantity": 15,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 4,
+      "tape_roll_quantity": 0.5,
+      "labor_hours": 2
+   },
+   {
+      "room_name": "Bedroom (Medium)",
+      "small_box_quantity": 8,
+      "medium_box_quantity": 12,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 3,
+      "tape_roll_quantity": 1,
+      "labor_hours": 2
+   },
+   {
+      "room_name": "Bedroom (Small)",
+      "small_box_quantity": 5,
+      "medium_box_quantity": 5,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 2,
+      "tape_roll_quantity": 0.5,
+      "labor_hours": 1
+   },
+   {
+      "room_name": "Closet (Bedroom)",
+      "small_box_quantity": 5,
+      "medium_box_quantity": 5,
+      "large_box_quantity": 3,
+      "paper_roll_quantity": 3,
+      "tape_roll_quantity": 0.5,
+      "labor_hours": 1
+   },
+   {
+      "room_name": "Closet (Hall)",
+      "small_box_quantity": 2,
+      "medium_box_quantity": 5,
+      "large_box_quantity": 2,
+      "paper_roll_quantity": 2,
+      "tape_roll_quantity": 0.25,
+      "labor_hours": 0.5
+   },
+   {
+      "room_name": "Closet (Walk-in)",
+      "small_box_quantity": 10,
+      "medium_box_quantity": 15,
+      "large_box_quantity": 5,
+      "paper_roll_quantity": 5,
+      "tape_roll_quantity": 1,
+      "labor_hours": 1.5
+   },
+   {
+      "room_name": "Living Room (Large)",
+      "small_box_quantity": 25,
+      "medium_box_quantity": 30,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 5,
+      "tape_roll_quantity": 1,
+      "labor_hours": 2
+   },
+   {
+      "room_name": "Living Room (Medium)",
+      "small_box_quantity": 15,
+      "medium_box_quantity": 25,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 3,
+      "tape_roll_quantity": 1,
+      "labor_hours": 1.5
+   },
+   {
+      "room_name": "Living Room (Small)",
+      "small_box_quantity": 10,
+      "medium_box_quantity": 10,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 2,
+      "tape_roll_quantity": 0.25,
+      "labor_hours": 1
+   },
+   {
+      "room_name": "Garage (Large)",
+      "small_box_quantity": 25,
+      "medium_box_quantity": 40,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 10,
+      "tape_roll_quantity": 2,
+      "labor_hours": 8
+   },
+   {
+      "room_name": "Garage (Medium)",
+      "small_box_quantity": 20,
+      "medium_box_quantity": 30,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 6,
+      "tape_roll_quantity": 1,
+      "labor_hours": 5
+   },
+   {
+      "room_name": "Garage (Small)",
+      "small_box_quantity": 10,
+      "medium_box_quantity": 20,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 2,
+      "tape_roll_quantity": 1,
+      "labor_hours": 3.5
+   },
+   {
+      "room_name": "Workshop (Large)",
+      "small_box_quantity": 25,
+      "medium_box_quantity": 50,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 8,
+      "tape_roll_quantity": 2,
+      "labor_hours": 5
+   },
+   {
+      "room_name": "Workshop (Medium)",
+      "small_box_quantity": 15,
+      "medium_box_quantity": 25,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 6,
+      "tape_roll_quantity": 1,
+      "labor_hours": 2.5
+   },
+   {
+      "room_name": "Workshop (Small)",
+      "small_box_quantity": 10,
+      "medium_box_quantity": 15,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 4,
+      "tape_roll_quantity": 1,
+      "labor_hours": 1
+   },
+   {
+      "room_name": "Laundry Room",
+      "small_box_quantity": 5,
+      "medium_box_quantity": 5,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 1,
+      "tape_roll_quantity": 1,
+      "labor_hours": 1
+   },
+   {
+      "room_name": "Office",
+      "small_box_quantity": 15,
+      "medium_box_quantity": 15,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 2,
+      "tape_roll_quantity": 1,
+      "labor_hours": 2.5
+   },
+   {
+      "room_name": "Bathroom",
+      "small_box_quantity": 5,
+      "medium_box_quantity": 5,
+      "large_box_quantity": 0,
+      "paper_roll_quantity": 1,
+      "tape_roll_quantity": 0.5,
+      "labor_hours": 1
+   }
+]

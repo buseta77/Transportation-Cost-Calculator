@@ -1,0 +1,56 @@
+[
+   {
+      "supply_name":"Small Box",
+      "supplier":"Lawrence Paper Company",
+      "order_price":1.13,
+      "resell_price":2.83
+   },
+   {
+      "supply_name":"Medium Box",
+      "supplier":"Lawrence Paper Company",
+      "order_price":1.74,
+      "resell_price":4.35
+   },
+   {
+      "supply_name":"Large Box",
+      "supplier":"Suburban Industrial Packaging",
+      "order_price":10,
+      "resell_price":25
+   },
+   {
+      "supply_name":"Paper Roll",
+      "supplier":"Uline",
+      "order_price":2.65,
+      "resell_price":6.63
+   },
+   {
+      "supply_name":"Tape Roll",
+      "supplier":"Suburban Industrial Packaging",
+      "order_price":1,
+      "resell_price":2.50
+   },
+   {
+      "supply_name":"Bubble Wrap",
+      "supplier":"Suburban Industrial Packaging",
+      "order_price":15,
+      "resell_price":37.50
+   },
+   {
+      "supply_name":"Paper Box",
+      "supplier":"Uline",
+      "order_price":53,
+      "resell_price":132.50
+   },
+   {
+      "supply_name":"Shrink Wrap",
+      "supplier":"Suburban Industrial Packaging",
+      "order_price":9.34,
+      "resell_price":23.35
+   },
+   {
+      "supply_name":"Labor",
+      "supplier":"Self",
+      "order_price":95,
+      "resell_price":0
+   }
+]
