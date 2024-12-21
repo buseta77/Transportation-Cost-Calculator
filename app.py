@@ -762,7 +762,7 @@ class UI(QWidget):
         conn = get_db_connection(self.is_online)
         cursor = conn.cursor()
         try:
-            cursor.execute('''SELECT item_name, hidden_value, item_tab FROM items''')
+            cursor.execute('''SELECT item_name, hidden_value, item_tab FROM items ORDER BY item_name ASC''')
             # item list will hold all data of items inside a list
             self.all_items = cursor.fetchall()
         except sqlite3.OperationalError:
@@ -786,7 +786,7 @@ class UI(QWidget):
         ###
         self.all_supplies = []
         try:
-            cursor.execute("""SELECT * FROM rooms ORDER BY id ASC""")
+            cursor.execute("""SELECT * FROM rooms ORDER BY room_name ASC""")
             self.all_rooms = cursor.fetchall()
         except sqlite3.OperationalError:
             self.all_rooms = []
@@ -1235,12 +1235,11 @@ class UI(QWidget):
         if where == "-- Add New Item --":
             conn = psycopg2.connect(DB_URL)
             cursor = conn.cursor()
-            sql = f'''INSERT INTO items VALUES
+            sql = f'''INSERT INTO items (item_name, hidden_value, item_tab) VALUES
             ('{name}', '{value}', '{tab}')
             '''
             cursor.execute(sql)
             self.all_items = []
-            self.all_items = cursor.fetchall()
             conn.commit()
             conn.close()
         else:
@@ -1283,7 +1282,7 @@ class UI(QWidget):
             self.i_boxes -= 1
         conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
-        sql = '''SELECT item_name, hidden_value, item_tab FROM items'''
+        sql = '''SELECT item_name, hidden_value, item_tab FROM items ORDER BY item_name ASC'''
         cursor.execute(sql)
         # item list will hold all data of items inside a list
         self.all_items = cursor.fetchall()
@@ -1416,7 +1415,7 @@ class UI(QWidget):
         # get latest info from database below
         conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
-        sql = '''SELECT formula_name, formula_numbers FROM formulas'''
+        sql = '''SELECT formula_name, formula_numbers FROM formulas ORDER BY formula_name ASC'''
         cursor.execute(sql)
         self.all_formulas = cursor.fetchall()
         conn.close()
@@ -2012,7 +2011,7 @@ class UI(QWidget):
         # get latest formulas below
         conn = get_db_connection(self.is_online)
         cursor = conn.cursor()
-        sql = '''SELECT formula_name, formula_numbers FROM formulas'''
+        sql = '''SELECT formula_name, formula_numbers FROM formulas ORDER BY formula_name ASC'''
         cursor.execute(sql)
         self.all_formulas = cursor.fetchall()
         conn.close()
@@ -2572,7 +2571,7 @@ class UI(QWidget):
         cursor.execute(sql)
         conn.commit()
 
-        sql = '''SELECT * FROM supplies ORDER BY id ASC'''
+        sql = '''SELECT * FROM supplies ORDER BY supply_name ASC'''
         cursor.execute(sql)
         self.all_supplies = cursor.fetchall()
         conn.close()
@@ -2651,7 +2650,7 @@ class UI(QWidget):
         if not self.all_rooms:
             conn = psycopg2.connect(DB_URL)
             cursor = conn.cursor()
-            cursor.execute('''SELECT * FROM rooms ORDER BY id ASC''')
+            cursor.execute('''SELECT * FROM rooms ORDER BY room_name ASC''')
             self.all_rooms = cursor.fetchall()
             conn.close()
         # define UI elements below
@@ -2780,7 +2779,7 @@ class UI(QWidget):
                 conn.close()
         conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
-        sql = '''SELECT * FROM rooms ORDER BY id ASC'''
+        sql = '''SELECT * FROM rooms ORDER BY room_name ASC'''
         cursor.execute(sql)
         # item list will hold all data of items inside a list
         self.all_rooms = cursor.fetchall()
@@ -2815,13 +2814,13 @@ class UI(QWidget):
         conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM items ORDER BY id ASC")
+        cursor.execute("SELECT * FROM items ORDER BY item_name ASC")
         all_items = cursor.fetchall()
-        cursor.execute("SELECT * FROM formulas ORDER BY id ASC")
+        cursor.execute("SELECT * FROM formulas ORDER BY formula_name ASC")
         all_formulas = cursor.fetchall()
-        cursor.execute("SELECT * FROM supplies ORDER BY id ASC")
+        cursor.execute("SELECT * FROM supplies ORDER BY supply_name ASC")
         all_supplies = cursor.fetchall()
-        cursor.execute("SELECT * FROM rooms ORDER BY id ASC")
+        cursor.execute("SELECT * FROM rooms ORDER BY room_name ASC")
         all_rooms = cursor.fetchall()
 
         conn.close()
