@@ -899,6 +899,44 @@ class UI(QWidget):
             self.edit_supplies_button.setDisabled(True)
             self.edit_room_materials_button.setDisabled(True)
 
+        ### load selected items from previous session
+        sqlite_conn = sqlite3.connect("offline.db")
+        sqlite_cursor = sqlite_conn.cursor()
+        try:
+            sqlite_cursor.execute('''SELECT name, type, item_tab, count FROM selected_items''')
+            selected_items = sqlite_cursor.fetchall()
+        except:
+            selected_items = []
+        sqlite_conn.close()
+
+        # Create a dictionary to map item_tabs to their corresponding scroll areas
+        scroll_areas = {
+            "kitchen": self.kitchen_scroll_area,
+            "bedroom": self.bedroom_scroll_area,
+            "living": self.living_scroll_area,
+            "outside": self.outside_scroll_area,
+            "office": self.office_scroll_area,
+            "boxes": self.boxes_scroll_area,
+            "pack": self.packing_scroll_area
+        }
+
+        # Loop through the selected items
+        for it in selected_items:
+            if it[1] == "move":
+                # If the item_tab is found in the scroll_areas dictionary
+                if it[2] in scroll_areas:
+                    scroll_area = scroll_areas[it[2]]  # Get the corresponding scroll area
+                    for x in scroll_area.findChildren(QLabel):
+                        if it[0] == x.text():
+                            x.parent().findChildren(QLineEdit)[0].setText(str(it[3]))
+            elif it[1] == "pack":
+                # Handle the packing type case using the same dictionary
+                scroll_area = scroll_areas["pack"]
+                for x in scroll_area.findChildren(QLabel):
+                    if it[0] == x.text():
+                        x.parent().findChildren(QLineEdit)[0].setText(str(it[3]))
+
+
     ### METHODS ###
     def show_layout(self, layout):
         for i in range(layout.count()):
@@ -1415,7 +1453,7 @@ class UI(QWidget):
         # get latest info from database below
         conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
-        sql = '''SELECT formula_name, formula_numbers FROM formulas ORDER BY formula_name ASC'''
+        sql = '''SELECT formula_name, formula_numbers FROM formulas ORDER BY id'''
         cursor.execute(sql)
         self.all_formulas = cursor.fetchall()
         conn.close()
@@ -1530,7 +1568,7 @@ class UI(QWidget):
         # get latest info from database below
         conn = psycopg2.connect(DB_URL)
         cursor = conn.cursor()
-        sql = '''SELECT formula_numbers FROM formulas'''
+        sql = '''SELECT formula_numbers FROM formulas ORDER BY id'''
         cursor.execute(sql)
         hidden_values_raw = cursor.fetchall()[12][0]
         hidden_values = hidden_values_raw.split('-')
@@ -2011,11 +2049,10 @@ class UI(QWidget):
         # get latest formulas below
         conn = get_db_connection(self.is_online)
         cursor = conn.cursor()
-        sql = '''SELECT formula_name, formula_numbers FROM formulas ORDER BY formula_name ASC'''
+        sql = '''SELECT formula_name, formula_numbers FROM formulas ORDER BY id'''
         cursor.execute(sql)
         self.all_formulas = cursor.fetchall()
         conn.close()
-        hidden_value_formulas = self.all_formulas[12][1].split('-')
         distance_fee = self.all_formulas[0][1].split('-')
         long_distance_fee = self.all_formulas[1][1].split('-')
         fort_riley_fee = self.all_formulas[2][1].split('-')
@@ -2030,6 +2067,7 @@ class UI(QWidget):
         low_mid = float((low + 1) / 2)
         high = float(self.all_formulas[11][1])
         high_mid = float((high + 1) / 2)
+        hidden_value_formulas = self.all_formulas[12][1].split('-')
         slider_value = self.slider.value()
 
         # prepare values below
@@ -2236,7 +2274,7 @@ class UI(QWidget):
         cursor.execute('''SELECT * FROM supplies ORDER BY id ASC''')
         self.all_supplies = cursor.fetchall()
 
-        cursor.execute('''SELECT formula_name, formula_numbers FROM formulas''')
+        cursor.execute('''SELECT formula_name, formula_numbers FROM formulas ORDER BY id''')
         self.all_formulas = cursor.fetchall()
         conn.close()
 
@@ -2816,7 +2854,7 @@ class UI(QWidget):
 
         cursor.execute("SELECT * FROM items ORDER BY item_name ASC")
         all_items = cursor.fetchall()
-        cursor.execute("SELECT * FROM formulas ORDER BY formula_name ASC")
+        cursor.execute("SELECT * FROM formulas ORDER BY id")
         all_formulas = cursor.fetchall()
         cursor.execute("SELECT * FROM supplies ORDER BY supply_name ASC")
         all_supplies = cursor.fetchall()
@@ -2873,6 +2911,18 @@ class UI(QWidget):
                 paper_roll_quantity REAL NOT NULL,
                 tape_roll_quantity REAL NOT NULL,
                 labor_hours REAL NOT NULL);""")
+    
+    def create_selected_items_table(self, cursor):
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS selected_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                type TEXT NOT NULL,
+                item_tab TEXT,
+                count INTEGER NOT NULL);""")
+
+    def delete_existing_selected_items_records(self, cursor):
+        cursor.execute("DELETE FROM selected_items")
 
     def delete_existing_records(self, cursor):
         cursor.execute("DELETE FROM items")
@@ -2884,6 +2934,109 @@ class UI(QWidget):
         for row in data:
             placeholders = ', '.join(['?' for _ in row])
             cursor.execute(f"INSERT INTO {table} VALUES ({placeholders})", row)
+
+    def closeEvent(self, event):
+        sqlite_conn = sqlite3.connect("offline.db")
+        sqlite_cursor = sqlite_conn.cursor()
+        self.create_selected_items_table(sqlite_cursor)
+        self.delete_existing_selected_items_records(sqlite_cursor)
+
+        item_list_kitchen = []
+        item_list_bedroom = []
+        item_list_living = []
+        item_list_outside = []
+        item_list_office = []
+        item_list_boxes = []
+        number_list_kitchen = []
+        number_list_bedroom = []
+        number_list_living = []
+        number_list_outside = []
+        number_list_office = []
+        number_list_boxes = []
+
+        # get names as a list
+        for item in self.kitchen_widget.findChildren(QLabel):
+            item_list_kitchen.append(item.text())
+        for item in self.bedroom_widget.findChildren(QLabel):
+            item_list_bedroom.append(item.text())
+        for item in self.living_widget.findChildren(QLabel):
+            item_list_living.append(item.text())
+        for item in self.outside_widget.findChildren(QLabel):
+            item_list_outside.append(item.text())
+        for item in self.office_widget.findChildren(QLabel):
+            item_list_office.append(item.text())
+        for item in self.boxes_widget.findChildren(QLabel):
+            item_list_boxes.append(item.text())
+
+        # get numbers as a list
+        for item in self.kitchen_widget.findChildren(QLineEdit):
+            if not item.text() == '':
+                number_list_kitchen.append(item.text())
+            else:
+                number_list_kitchen.append('0')
+        for item in self.bedroom_widget.findChildren(QLineEdit):
+            if not item.text() == '':
+                number_list_bedroom.append(item.text())
+            else:
+                number_list_bedroom.append('0')
+        for item in self.living_widget.findChildren(QLineEdit):
+            if not item.text() == '':
+                number_list_living.append(item.text())
+            else:
+                number_list_living.append('0')
+        for item in self.outside_widget.findChildren(QLineEdit):
+            if not item.text() == '':
+                number_list_outside.append(item.text())
+            else:
+                number_list_outside.append('0')
+        for item in self.office_widget.findChildren(QLineEdit):
+            if not item.text() == '':
+                number_list_office.append(item.text())
+            else:
+                number_list_office.append('0')
+        for item in self.boxes_widget.findChildren(QLineEdit):
+            if not item.text() == '':
+                number_list_boxes.append(item.text())
+            else:
+                number_list_boxes.append('0')
+
+        for i in range(len(item_list_kitchen)):
+            if not number_list_kitchen[i] == '0':
+                sqlite_cursor.execute(f"INSERT INTO selected_items (name, type, item_tab, count) VALUES ('{item_list_kitchen[i]}', 'move', 'kitchen', {number_list_kitchen[i]})")
+        for i in range(len(item_list_bedroom)):
+            if not number_list_bedroom[i] == '0':
+                sqlite_cursor.execute(f"INSERT INTO selected_items (name, type, item_tab, count) VALUES ('{item_list_bedroom[i]}', 'move', 'bedroom', {number_list_bedroom[i]})")
+        for i in range(len(item_list_living)):
+            if not number_list_living[i] == '0':
+                sqlite_cursor.execute(f"INSERT INTO selected_items (name, type, item_tab, count) VALUES ('{item_list_living[i]}', 'move', 'living', {number_list_living[i]})")
+        for i in range(len(item_list_outside)):
+            if not number_list_outside[i] == '0':
+                sqlite_cursor.execute(f"INSERT INTO selected_items (name, type, item_tab, count) VALUES ('{item_list_outside[i]}', 'move', 'outside', {number_list_outside[i]})")
+        for i in range(len(item_list_office)):
+            if not number_list_office[i] == '0':
+                sqlite_cursor.execute(f"INSERT INTO selected_items (name, type, item_tab, count) VALUES ('{item_list_office[i]}', 'move', 'office', {number_list_office[i]})")
+        for i in range(len(item_list_boxes)):
+            if not number_list_boxes[i] == '0':
+                sqlite_cursor.execute(f"INSERT INTO selected_items (name, type, item_tab, count) VALUES ('{item_list_boxes[i]}', 'move', 'boxes', {number_list_boxes[i]})")
+
+
+        pack_item_list = []
+        pack_number_list = []
+        # get names as a list
+        for item in self.packing_widget.findChildren(QLabel):
+            pack_item_list.append(item.text())
+        # get numbers as a list
+        for item in self.packing_widget.findChildren(QLineEdit):
+            if not item.text() == '':
+                pack_number_list.append(item.text())
+            else:
+                pack_number_list.append('0')
+        for i in range(len(pack_item_list)):
+            if not pack_number_list[i] == '0':
+                sqlite_cursor.execute(f"INSERT INTO selected_items (name, type, item_tab, count) VALUES ('{pack_item_list[i]}', 'pack', null, {pack_number_list[i]})")
+
+        sqlite_conn.commit()
+        sqlite_conn.close()
 
 
 app = QApplication(sys.argv)
