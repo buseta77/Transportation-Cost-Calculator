@@ -43,7 +43,7 @@ def get_db_connection(is_online):
 
     return conn
 
-DB_URL = "URL_OF_DB"
+DB_URL = "PW"
 ADMIN_PW = "PW"
 
 # STYLESHEETS
@@ -163,6 +163,8 @@ class UI(QWidget):
         self.is_online = is_online()
         self.moving_calculation_details_opened = False
         self.packing_calculation_details_opened = False
+        self.client_name = ""
+        self.address = ""
 
         # main layout settings
         super(UI, self).__init__()
@@ -427,6 +429,18 @@ class UI(QWidget):
         self.calculate_estimate_button.clicked.connect(self.calculate_estimate)
         self.calculate_estimate_button.setText("Calculate")
         self.calculate_estimate_button.setStyleSheet(calculate_button_stylesheet)
+        self.client_name_input = QLineEdit()
+        self.client_name_input.setPlaceholderText("Customer Name")
+        self.client_name_input.setStyleSheet("border: 1px solid rgb(128, 179, 255);"
+                                            "border-radius: 3px;"
+                                            "background-color: rgb(250, 250, 250);")
+        self.client_name_input.setFixedWidth(150)
+        self.address_input = QLineEdit()
+        self.address_input.setPlaceholderText("Address")
+        self.address_input.setStyleSheet("border: 1px solid rgb(128, 179, 255);"
+                                        "border-radius: 3px;"
+                                        "background-color: rgb(250, 250, 250);")
+        self.address_input.setFixedWidth(300)
         self.main_estimate_label = QLabel()
         self.unload_only_estimate_label = QLabel()
         self.load_only_estimate_label = QLabel()
@@ -689,11 +703,13 @@ class UI(QWidget):
         self.moving_layout.addWidget(self.ft_riley_adjustment, 5, 10, 1, 1, alignment=Qt.AlignRight)
         self.moving_layout.addWidget(self.slider_frame, 6, 8, 2, 3, alignment=Qt.AlignCenter)
         self.moving_layout.addWidget(self.calculate_estimate_button, 8, 8, 1, 3, alignment=Qt.AlignCenter)
-        self.moving_layout.addWidget(self.main_estimate_label, 9, 8, 1, 3, alignment=Qt.AlignBottom)
-        self.moving_layout.addWidget(self.unload_only_estimate_label, 10, 8, 1, 3)
-        self.moving_layout.addWidget(self.load_only_estimate_label, 11, 8, 1, 3, alignment=Qt.AlignTop)
+        self.moving_layout.addWidget(self.client_name_input, 9, 8, 1, 3, alignment=Qt.AlignCenter)
+        self.moving_layout.addWidget(self.address_input, 10, 8, 1, 3, alignment=Qt.AlignCenter)
+        self.moving_layout.addWidget(self.main_estimate_label, 11, 8, 1, 3, alignment=Qt.AlignBottom)
+        self.moving_layout.addWidget(self.unload_only_estimate_label, 12, 8, 1, 3)
+        self.moving_layout.addWidget(self.load_only_estimate_label, 13, 8, 1, 3, alignment=Qt.AlignTop)
         self.moving_layout.addWidget(self.see_details_button, 23, 8, 1, 2, alignment=Qt.AlignLeft)
-        self.moving_layout.addWidget(self.details_frame, 12, 8, 11, 3, alignment=Qt.AlignCenter)
+        self.moving_layout.addWidget(self.details_frame, 14, 8, 9, 3, alignment=Qt.AlignCenter)
         self.moving_layout.addWidget(self.export_list_button, 23, 9, 1, 2, alignment=Qt.AlignRight)
         ###
         self.packing_layout.setRowMinimumHeight(0, 10)
@@ -937,6 +953,12 @@ class UI(QWidget):
                 for x in scroll_area.findChildren(QLabel):
                     if it[0] == x.text():
                         x.parent().findChildren(QLineEdit)[0].setText(str(it[3]))
+            elif it[1] == "client":
+                self.client_name = it[0]
+                self.client_name_input.setText(self.client_name)
+            elif it[1] == "address":
+                self.address = it[0]
+                self.address_input.setText(self.address)
 
 
     ### METHODS ###
@@ -1808,6 +1830,13 @@ class UI(QWidget):
             if z == 'NOTE':
                 try:
                     self.import_note = str(f['DETAILS'][note_count + 1])
+                    self.client_name_input.setText("")
+                    self.address_input.setText("")
+                    try:
+                        self.client_name_input.setText(str(f['DETAILS'][note_count + 2]))
+                        self.address_input.setText(str(f['DETAILS'][note_count + 3]))
+                    except:
+                        pass
                     break
                 except KeyError:
                     self.import_note = ''
@@ -2018,6 +2047,11 @@ class UI(QWidget):
                     writer.writerow([note])
                 else:
                     writer.writerow('')
+
+                writer.writerow('')
+                writer.writerow([self.client_name_input.text()])
+                writer.writerow([self.address_input.text()])
+
                 f.close()
                 window.close()
 
@@ -2241,9 +2275,17 @@ class UI(QWidget):
         
         ###
         summary_moving_items_text = "Items to Move: \n\n"
+        total_moving_items_count = 0
+        total_moving_boxes_count = 0
         for i in range(len(item_list)):
             if not number_list[i] == '0':
                 summary_moving_items_text += f"{item_list[i]} x{number_list[i]}\n"
+                if item_list[i] != "Boxes" and item_list[i] != "Totes":
+                    total_moving_items_count += int(number_list[i])
+                else:
+                    total_moving_boxes_count += int(number_list[i])
+        summary_moving_items_text += f"\n>Total Items: {total_moving_items_count}\n"
+        summary_moving_items_text += f">Total Boxes/Totes: {total_moving_boxes_count}"
         self.summary_moving_items_label.setText(summary_moving_items_text)
         self.is_moving_calculated = True
         self.packs_mileage_2.setText(f"Mileage: {self.round_trip_distance.text()}")
@@ -3000,6 +3042,9 @@ class UI(QWidget):
         for i in range(len(pack_item_list)):
             if not pack_number_list[i] == '0':
                 sqlite_cursor.execute(f"INSERT INTO selected_items (name, type, item_tab, count) VALUES ('{pack_item_list[i]}', 'pack', null, {pack_number_list[i]})")
+        
+        sqlite_cursor.execute(f"INSERT INTO selected_items (name, type, item_tab, count) VALUES ('{self.client_name_input.text()}', 'client', null, 0)")
+        sqlite_cursor.execute(f"INSERT INTO selected_items (name, type, item_tab, count) VALUES ('{self.address_input.text()}', 'address', null, 0)")
 
         sqlite_conn.commit()
         sqlite_conn.close()
