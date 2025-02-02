@@ -161,6 +161,8 @@ def convert_integer_or_leave_float(num):
 class UI(QWidget):
     def __init__(self):
         self.is_online = is_online()
+        self.moving_calculation_details_opened = False
+        self.packing_calculation_details_opened = False
 
         # main layout settings
         super(UI, self).__init__()
@@ -965,7 +967,7 @@ class UI(QWidget):
             self.packing_tab.setStyleSheet("color: black;")
             self.summary_tab.setStyleSheet("color: black;")
             self.staff_tab.setStyleSheet("color: black;")
-            if not self.is_moving_calculated:
+            if not self.is_moving_calculated and not self.moving_calculation_details_opened:
                 self.see_details_button.hide()
                 self.export_list_button.hide()
             self.details_frame.hide()
@@ -1143,7 +1145,6 @@ class UI(QWidget):
             item_value.setEnabled(True)
             item_tab.setEnabled(True)
             save_button.setEnabled(True)
-            secret_key.setEnabled(True)
             save_button.setToolTip("Leave item name blank to delete this item")
             if name == "-- Add New Item --":
                 item_name.clear()
@@ -1235,7 +1236,7 @@ class UI(QWidget):
         item_tab.addItem("Boxes")
         save_button = QPushButton()
         save_button.clicked.connect(lambda: self.save_item(item_name.text(), item_value.text(), item_tab.currentText(),
-                                                           choose_item_combobox.currentText(), secret_key))
+                                                           choose_item_combobox.currentText()))
         save_button.setText("Save")
         save_button.setEnabled(False)
         # place elements to window below
@@ -1247,13 +1248,7 @@ class UI(QWidget):
         edit_items_layout.addWidget(item_tab_label, 3, 0, 1, 1)
         edit_items_layout.addWidget(item_tab, 3, 1, 1, 1)
         edit_items_layout.addWidget(save_button, 4, 1, 1, 1)
-        ### secret key
-        secret_key_label = QLabel()
-        secret_key_label.setText("Secret Key:")
-        secret_key = QLineEdit()
-        secret_key.setEnabled(False)
-        edit_items_layout.addWidget(secret_key_label, 5, 0, 1, 1)
-        edit_items_layout.addWidget(secret_key, 5, 1, 1, 1)
+
         for item in self.edit_items_window.findChildren(QLabel):
             item.setFont(QFont('Times', 10))
         for item in self.edit_items_window.findChildren(QComboBox):
@@ -1264,10 +1259,7 @@ class UI(QWidget):
             item.setFont(QFont('Times', 9))
         self.edit_items_window.show()
 
-    def save_item(self, name, value, tab, where, secret_key):
-        if secret_key.text() != ADMIN_PW:
-            secret_key.setText("Wrong secret key")
-            return
+    def save_item(self, name, value, tab, where):
         if value == '':
             return
         if where == "-- Add New Item --":
@@ -1344,7 +1336,6 @@ class UI(QWidget):
 
         def change_edited_formula():
             save_button.setEnabled(True)
-            secret_key.setEnabled(True)
             formula = choose_item_combobox.currentText().replace(' Formula', '')
             line_1.show()
             line_2.show()
@@ -1490,17 +1481,11 @@ class UI(QWidget):
         save_button.setFixedWidth(80)
         save_button.clicked.connect(lambda: self.save_formula(line_1.text(), line_2.text(),
                                                             choose_item_combobox.currentText().replace(' Formula', ''),
-                                                              line_2.isVisible(), secret_key))
+                                                              line_2.isVisible()))
         edit_formulas_layout.addWidget(choose_item_combobox, 0, 0, 1, 1)
         edit_formulas_layout.addWidget(formula_frame, 1, 0, 1, 1, alignment=Qt.AlignLeft)
         edit_formulas_layout.addWidget(save_button, 2, 0, 1, 1, alignment=Qt.AlignRight)
-        ### secret key
-        secret_key_label = QLabel()
-        secret_key_label.setText("Secret Key:")
-        secret_key = QLineEdit()
-        secret_key.setEnabled(False)
-        edit_formulas_layout.addWidget(secret_key_label, 3, 0, 1, 1, alignment=Qt.AlignLeft)
-        edit_formulas_layout.addWidget(secret_key, 3, 0, 1, 1, alignment=Qt.AlignRight)
+
         for item in self.edit_formulas_window.findChildren(QLabel):
             item.setFont(QFont('Times', 9))
         for item in self.edit_formulas_window.findChildren(QComboBox):
@@ -1511,10 +1496,7 @@ class UI(QWidget):
             item.setFont(QFont('Times', 9))
         self.edit_formulas_window.show()
 
-    def save_formula(self, value_1, value_2, where, line_2, secret_key):
-        if secret_key.text() != ADMIN_PW:
-            secret_key.setText("Wrong secret key")
-            return
+    def save_formula(self, value_1, value_2, where, line_2):
         if value_1 == '':
             return
         if not line_2:
@@ -1638,7 +1620,7 @@ class UI(QWidget):
                                                             line_22.text(), line_31.text(), line_32.text(),
                                                             line_41.text(), line_42.text(), line_51.text(),
                                                             line_52.text(), line_61.text(), line_62.text(),
-                                                            secret_key))
+                                                            ))
         save_button.setText("Save")
         edit_values_layout.addWidget(label_11, 0, 0, 1, 1)
         edit_values_layout.addWidget(label_21, 1, 0, 1, 1)
@@ -1665,13 +1647,7 @@ class UI(QWidget):
         edit_values_layout.addWidget(line_52, 4, 3, 1, 1)
         edit_values_layout.addWidget(line_62, 5, 3, 1, 1)
         edit_values_layout.addWidget(save_button, 6, 3, 1, 1)
-        ### secret key
-        secret_key_label = QLabel()
-        secret_key_label.setText("Secret Key:")
-        secret_key = QLineEdit()
-        secret_key.setEnabled(True)
-        edit_values_layout.addWidget(secret_key_label, 7, 0, 1, 1)
-        edit_values_layout.addWidget(secret_key, 7, 1, 1, 1)
+
         for item in self.edit_values_window.findChildren(QLabel):
             item.setFont(QFont('Times', 9))
         for item in self.edit_values_window.findChildren(QLineEdit):
@@ -1681,10 +1657,7 @@ class UI(QWidget):
         self.edit_values_window.show()
 
     def save_value(self, value1, value2, value3, value4, value5, value6, value7, value8, value9, value10, value11,
-                   value12, secret_key):
-        if secret_key.text() != ADMIN_PW:
-            secret_key.setText("Wrong secret key")
-            return
+                   value12):
         values = [value1, value2, value3, value4, value5, value6, value7, value8, value9, value10, value11, value12]
         values_raw = '-'.join(values)
         conn = psycopg2.connect(DB_URL)
@@ -1896,6 +1869,7 @@ class UI(QWidget):
             self.main_estimate_label.setText("")
             self.unload_only_estimate_label.setText("")
             self.load_only_estimate_label.setText("")
+            self.moving_calculation_details_opened = False
 
         def see_details(base, distance, long_distance, fort_riley, second_truck, small, med, large, estimator, adjust,
                         final, scale, main_estimate_text, unload_only_estimate_text, load_only_estimate_text):
@@ -1932,6 +1906,7 @@ class UI(QWidget):
             self.see_details_button.clicked.disconnect()
             self.see_details_button.clicked.connect(lambda: close_details(main_estimate_text, unload_only_estimate_text, load_only_estimate_text))
             self.details_frame.show()
+            self.moving_calculation_details_opened = True
 
         def open_to_export(items, base, distance, long_distance, fort_riley, second_truck, small, med, large,
                            estimator, adjust, final, scale, unload, load, inputs):
@@ -2216,9 +2191,19 @@ class UI(QWidget):
         unload_only_final = round(final_value * unload, 2)
         inputs = [int(self.round_trip_distance.text()), estimator_addition, self.ft_riley_adjustment.currentText(),
                   slider_value]
-        self.main_estimate_label.setText("")
-        self.unload_only_estimate_label.setText("")
-        self.load_only_estimate_label.setText("")
+        if self.moving_calculation_details_opened:
+            see_details(base_score, distance_addition,
+                        long_distance_addition, fort_riley_addition,
+                        second_truck_addition, small_addition, med_addition,
+                        large_addition, estimator_addition, adjust,
+                        final_value, scale,
+                        f"Estimate: ${'{:.2f}'.format(final_value)}",
+                        f"Unload Only Estimate: ${'{:.2f}'.format(unload_only_final)}",
+                        f"Load Only Estimate: ${'{:.2f}'.format(load_only_final)}")
+        else:
+            self.main_estimate_label.setText("")
+            self.unload_only_estimate_label.setText("")
+            self.load_only_estimate_label.setText("")
         #
         self.main_estimate_label_2.setText(f"Moving Estimate: ${'{:.2f}'.format(final_value)}")
         self.unload_only_estimate_label_2.setText(f"Unload Only Moving Estimate: ${'{:.2f}'.format(unload_only_final)}")
@@ -2226,32 +2211,33 @@ class UI(QWidget):
         self.moving_cost_total = final_value
         self.moving_and_packing_total_cost.setText(f"Moving & Packing Total Cost: ${round(self.packing_cost_total + self.moving_cost_total, 2)}")
         #
-        self.see_details_button.show()
-        self.see_details_button.setText("See Details")
-        self.details_frame.hide()
-        self.export_list_button.show()
-        try:
-            self.export_list_button.clicked.disconnect()
-        except TypeError:
-            pass
-        self.export_list_button.clicked.connect(lambda: open_to_export(counted_items, base_score, distance_addition,
-                                                                    long_distance_addition, fort_riley_addition,
-                                                                    second_truck_addition, small_addition, med_addition,
-                                                                    large_addition, estimator_addition, adjust,
-                                                                    final_value, scale, unload_only_final,
-                                                                    load_only_final, inputs))
-        try:
-            self.see_details_button.clicked.disconnect()
-        except TypeError:
-            pass
-        self.see_details_button.clicked.connect(lambda: see_details(base_score, distance_addition,
-                                                                    long_distance_addition, fort_riley_addition,
-                                                                    second_truck_addition, small_addition, med_addition,
-                                                                    large_addition, estimator_addition, adjust,
-                                                                    final_value, scale,
-                                                                    f"Estimate: ${'{:.2f}'.format(final_value)}",
-                                                                    f"Unload Only Estimate: ${'{:.2f}'.format(unload_only_final)}",
-                                                                    f"Load Only Estimate: ${'{:.2f}'.format(load_only_final)}"))
+        if not self.moving_calculation_details_opened:
+            self.see_details_button.show()
+            self.see_details_button.setText("See Details")
+            self.details_frame.hide()
+            self.export_list_button.show()
+            try:
+                self.export_list_button.clicked.disconnect()
+            except TypeError:
+                pass
+            self.export_list_button.clicked.connect(lambda: open_to_export(counted_items, base_score, distance_addition,
+                                                                        long_distance_addition, fort_riley_addition,
+                                                                        second_truck_addition, small_addition, med_addition,
+                                                                        large_addition, estimator_addition, adjust,
+                                                                        final_value, scale, unload_only_final,
+                                                                        load_only_final, inputs))
+            try:
+                self.see_details_button.clicked.disconnect()
+            except TypeError:
+                pass
+            self.see_details_button.clicked.connect(lambda: see_details(base_score, distance_addition,
+                                                                        long_distance_addition, fort_riley_addition,
+                                                                        second_truck_addition, small_addition, med_addition,
+                                                                        large_addition, estimator_addition, adjust,
+                                                                        final_value, scale,
+                                                                        f"Estimate: ${'{:.2f}'.format(final_value)}",
+                                                                        f"Unload Only Estimate: ${'{:.2f}'.format(unload_only_final)}",
+                                                                        f"Load Only Estimate: ${'{:.2f}'.format(load_only_final)}"))
         
         ###
         summary_moving_items_text = "Items to Move: \n\n"
@@ -2490,7 +2476,6 @@ class UI(QWidget):
             item_order_price.setEnabled(True)
             item_resell_price.setEnabled(True)
             save_supply_button.setEnabled(True)
-            secret_key.setEnabled(True)
             for edited_item in self.all_supplies:
                 if edited_item[1] == name:
                     item_supplier.setText(edited_item[2])
@@ -2563,7 +2548,7 @@ class UI(QWidget):
         item_resell_price.setEnabled(False)
         save_supply_button = QPushButton()
         save_supply_button.clicked.connect(lambda: self.save_supply(item_supplier.text(), item_order_price.text(), item_resell_price.text(),
-                                    choose_item_combobox.currentText(), secret_key))
+                                    choose_item_combobox.currentText()))
         save_supply_button.setText("Save")
         save_supply_button.setEnabled(False)
         # place elements to window below
@@ -2575,13 +2560,7 @@ class UI(QWidget):
         edit_supplies_layout.addWidget(item_resell_price_label, 3, 0, 1, 1)
         edit_supplies_layout.addWidget(item_resell_price, 3, 1, 1, 1)
         edit_supplies_layout.addWidget(save_supply_button, 4, 1, 1, 1)
-        ### secret key
-        secret_key_label = QLabel()
-        secret_key_label.setText("Secret Key:")
-        secret_key = QLineEdit()
-        secret_key.setEnabled(False)
-        edit_supplies_layout.addWidget(secret_key_label, 5, 0, 1, 1)
-        edit_supplies_layout.addWidget(secret_key, 5, 1, 1, 1)
+
         for item in self.edit_supply_costs_window.findChildren(QLabel):
             item.setFont(QFont('Times', 10))
         for item in self.edit_supply_costs_window.findChildren(QComboBox):
@@ -2592,10 +2571,7 @@ class UI(QWidget):
             item.setFont(QFont('Times', 9))
         self.edit_supply_costs_window.show()
 
-    def save_supply(self, supplier, order_price, resell_price, where, secret_key):
-        if secret_key.text() != ADMIN_PW:
-            secret_key.setText("Wrong secret key")
-            return
+    def save_supply(self, supplier, order_price, resell_price, where):
         if order_price == '' or resell_price == '':
             return
         conn = psycopg2.connect(DB_URL)
@@ -2626,7 +2602,6 @@ class UI(QWidget):
             tape_rolls_quantity.setEnabled(True)
             save_room_button.setEnabled(True)
             labors_quantity.setEnabled(True)
-            secret_key.setEnabled(True)
             save_room_button.setToolTip("Leave room name blank to delete this room")
             if name == "-- Add New Item --":
                 room_name.clear()
@@ -2736,7 +2711,7 @@ class UI(QWidget):
         save_room_button.clicked.connect(lambda: self.save_room(
             room_name.text(), small_boxes_quantity.text(), medium_boxes_quantity.text(),
             large_boxes_quantity.text(), paper_rolls_quantity.text(), tape_rolls_quantity.text(),
-            labors_quantity.text(), choose_item_combobox.currentText(), secret_key))
+            labors_quantity.text(), choose_item_combobox.currentText()))
         save_room_button.setText("Save")
         save_room_button.setEnabled(False)
         # place elements to window below
@@ -2756,13 +2731,7 @@ class UI(QWidget):
         edit_room_layout.addWidget(labors_label, 7, 0, 1, 1)
         edit_room_layout.addWidget(labors_quantity, 7, 1, 1, 1)
         edit_room_layout.addWidget(save_room_button, 8, 1, 1, 1)
-        ### secret key
-        secret_key_label = QLabel()
-        secret_key_label.setText("Secret Key:")
-        secret_key = QLineEdit()
-        secret_key.setEnabled(False)
-        edit_room_layout.addWidget(secret_key_label, 9, 0, 1, 1)
-        edit_room_layout.addWidget(secret_key, 9, 1, 1, 1)
+
         for item in self.edit_room_window.findChildren(QLabel):
             item.setFont(QFont('Times', 10))
         for item in self.edit_room_window.findChildren(QComboBox):
@@ -2773,10 +2742,7 @@ class UI(QWidget):
             item.setFont(QFont('Times', 9))
         self.edit_room_window.show()
     
-    def save_room(self, name, small, medium, large, paper, tape, labor, where, secret_key):
-        if secret_key.text() != ADMIN_PW:
-            secret_key.setText("Wrong secret key")
-            return
+    def save_room(self, name, small, medium, large, paper, tape, labor, where):
         if small == '' or medium == '' or large == '' or paper == '' or tape == '' or labor == '':
             return
         if where == "-- Add New Item --":
