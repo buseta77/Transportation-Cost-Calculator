@@ -992,7 +992,8 @@ class UI(QWidget):
             if not self.is_moving_calculated and not self.moving_calculation_details_opened:
                 self.see_details_button.hide()
                 self.export_list_button.hide()
-            self.details_frame.hide()
+            if not self.moving_calculation_details_opened:
+                self.details_frame.hide()
             self.get_kitchen_tab()
         elif layout == self.packing_layout:
             if not self.is_packing_calculated:
@@ -1816,9 +1817,6 @@ class UI(QWidget):
             self.main_estimate_label.setText("")
         self.load_only_estimate_label.setText("")
         self.unload_only_estimate_label.setText("")
-        self.see_details_button.hide()
-        self.details_frame.hide()
-        self.export_list_button.hide()
 
         for index, item in enumerate(packing_items):
             for x in self.packing_scroll_area.findChildren(QLabel):
@@ -1833,8 +1831,10 @@ class UI(QWidget):
                     self.client_name_input.setText("")
                     self.address_input.setText("")
                     try:
-                        self.client_name_input.setText(str(f['DETAILS'][note_count + 2]))
-                        self.address_input.setText(str(f['DETAILS'][note_count + 3]))
+                        if str(f['DETAILS'][note_count + 2]) != "nan":
+                            self.client_name_input.setText(str(f['DETAILS'][note_count + 2]))
+                        if str(f['DETAILS'][note_count + 3]) != "nan":
+                            self.address_input.setText(str(f['DETAILS'][note_count + 3]))
                     except:
                         pass
                     break
@@ -2245,21 +2245,22 @@ class UI(QWidget):
         self.moving_cost_total = final_value
         self.moving_and_packing_total_cost.setText(f"Moving & Packing Total Cost: ${round(self.packing_cost_total + self.moving_cost_total, 2)}")
         #
+        self.export_list_button.show()
+        try:
+            self.export_list_button.clicked.disconnect()
+        except TypeError:
+            pass
+        self.export_list_button.clicked.connect(lambda: open_to_export(counted_items, base_score, distance_addition,
+                                                long_distance_addition, fort_riley_addition,
+                                                second_truck_addition, small_addition, med_addition,
+                                                large_addition, estimator_addition, adjust,
+                                                final_value, scale, unload_only_final,
+                                                load_only_final, inputs))
         if not self.moving_calculation_details_opened:
-            self.see_details_button.show()
+            if not self.see_details_button.isVisible():
+                self.see_details_button.show()
             self.see_details_button.setText("See Details")
             self.details_frame.hide()
-            self.export_list_button.show()
-            try:
-                self.export_list_button.clicked.disconnect()
-            except TypeError:
-                pass
-            self.export_list_button.clicked.connect(lambda: open_to_export(counted_items, base_score, distance_addition,
-                                                                        long_distance_addition, fort_riley_addition,
-                                                                        second_truck_addition, small_addition, med_addition,
-                                                                        large_addition, estimator_addition, adjust,
-                                                                        final_value, scale, unload_only_final,
-                                                                        load_only_final, inputs))
             try:
                 self.see_details_button.clicked.disconnect()
             except TypeError:
@@ -2461,7 +2462,9 @@ class UI(QWidget):
         self.moving_and_packing_total_cost.setText(f"Moving & Packing Total Cost: ${round(self.packing_cost_total + self.moving_cost_total, 2)}")
 
         self.is_packing_calculated = True
-        self.packs_see_details_button.show()
+        if self.packing_scroll_area.isVisible():
+            self.packs_see_details_button.setText("See Details")
+            self.packs_see_details_button.show()
         try:
             self.packs_see_details_button.clicked.disconnect()
         except TypeError:
@@ -2493,9 +2496,9 @@ class UI(QWidget):
             self.packs_see_details_button.clicked.disconnect()
         except TypeError:
             pass
-        self.packs_see_details_button.clicked.connect(lambda: self.close_packs_details(small_box_cost, medium_box_cost, large_box_cost, paper_roll_cost, tape_roll_cost, materials_cost_text, labor_cost))
+        self.packs_see_details_button.clicked.connect(lambda: self.close_packs_details(small_box_cost, medium_box_cost, large_box_cost, paper_roll_cost, tape_roll_cost, materials_cost_text, total_packing_cost_text, labor_cost))
 
-    def close_packs_details(self, small_box_cost, medium_box_cost, large_box_cost, paper_roll_cost, tape_roll_cost, materials_cost_text, labor_cost):
+    def close_packs_details(self, small_box_cost, medium_box_cost, large_box_cost, paper_roll_cost, tape_roll_cost, materials_cost_text, total_packing_cost_text, labor_cost):
         self.packs_small_boxes.setText(self.packs_small_boxes.text().replace(f" (${small_box_cost})", ""))
         self.packs_medium_boxes.setText(self.packs_medium_boxes.text().replace(f" (${medium_box_cost})", ""))
         self.packs_large_boxes.setText(self.packs_large_boxes.text().replace(f" (${large_box_cost})", ""))
@@ -2509,7 +2512,7 @@ class UI(QWidget):
             self.packs_see_details_button.clicked.disconnect()
         except TypeError:
             pass
-        self.packs_see_details_button.clicked.connect(lambda: self.display_packs_details(small_box_cost, medium_box_cost, large_box_cost, paper_roll_cost, tape_roll_cost, materials_cost_text, labor_cost))
+        self.packs_see_details_button.clicked.connect(lambda: self.display_packs_details(small_box_cost, medium_box_cost, large_box_cost, paper_roll_cost, tape_roll_cost, materials_cost_text, total_packing_cost_text, labor_cost))
 
     def edit_supply_costs(self):
         def change_edited_supply():
